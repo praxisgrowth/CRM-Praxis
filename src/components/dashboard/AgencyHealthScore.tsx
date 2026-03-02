@@ -11,6 +11,11 @@ function scoreColor(s: number) {
   if (s >= 60) return '#f59e0b'
   return '#ef4444'
 }
+function scoreGlow(s: number) {
+  if (s >= 80) return 'rgba(16,185,129,0.4)'
+  if (s >= 60) return 'rgba(245,158,11,0.4)'
+  return 'rgba(239,68,68,0.4)'
+}
 
 function scoreLabel(s: number) {
   if (s >= 80) return 'Excelente'
@@ -72,19 +77,31 @@ export function AgencyHealthScore({ clients, loading }: Props) {
                 startAngle={180} endAngle={0}
                 data={radialData}
               >
+                <defs>
+                  <linearGradient id="gaugeGrad" x1="1" y1="0" x2="0" y2="0">
+                    <stop offset="0%"  stopColor="#06b6d4" />
+                    <stop offset="100%" stopColor="#7c3aed" />
+                  </linearGradient>
+                </defs>
                 <RadialBar
                   dataKey="value"
                   cornerRadius={8}
                   background={{ fill: 'rgba(255,255,255,0.04)' }}
+                  fill="url(#gaugeGrad)"
                 />
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingTop: 32 }}>
-              <span className="text-3xl font-bold" style={{ color }}>{score}</span>
-              <span className="text-[10px] text-slate-500 mt-0.5">/ 100</span>
+              <span
+                className="text-3xl font-bold"
+                style={{ color: scoreColor(score), textShadow: `0 0 20px ${scoreGlow(score)}` }}
+              >
+                {score}
+              </span>
+              <span className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>/ 100</span>
               <span
                 className="text-xs font-semibold mt-1 px-2 py-0.5 rounded-full"
-                style={{ background: `${color}20`, color }}
+                style={{ background: `${scoreColor(score)}18`, color: scoreColor(score), border: `1px solid ${scoreColor(score)}30` }}
               >
                 {scoreLabel(score)}
               </span>
@@ -101,20 +118,29 @@ export function AgencyHealthScore({ clients, loading }: Props) {
                 <SkeletonPillar />
               </div>
             ))
-          : pillars.map(p => (
-              <div key={p.label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">{p.label}</span>
-                  <span style={{ color: scoreColor(p.value) }} className="font-medium">{p.value}%</span>
+          : pillars.map((p, i) => {
+              // Alterna entre cyan, violet, pink, green
+              const neonColors = ['#06b6d4', '#7c3aed', '#ec4899', '#10b981']
+              const neonColor = neonColors[i % neonColors.length]
+              return (
+                <div key={p.label}>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span style={{ color: 'var(--text-muted)' }}>{p.label}</span>
+                    <span style={{ color: neonColor }} className="font-semibold">{p.value}%</span>
+                  </div>
+                  <div className="h-[3px] rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div
+                      className="h-[3px] rounded-full transition-all duration-700"
+                      style={{
+                        width: `${p.value}%`,
+                        background: `linear-gradient(90deg, ${neonColor}, ${neonColors[(i + 1) % neonColors.length]})`,
+                        boxShadow: `0 0 8px ${neonColor}60`,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <div
-                    className="h-1 rounded-full transition-all duration-700"
-                    style={{ width: `${p.value}%`, background: scoreColor(p.value) }}
-                  />
-                </div>
-              </div>
-            ))
+              )
+            })
         }
       </div>
     </div>

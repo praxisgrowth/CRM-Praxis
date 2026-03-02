@@ -14,21 +14,27 @@ interface Props {
   loading?: boolean
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface TooltipPayload {
+  dataKey: string
+  value: number
+  color: string
+}
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
     <div
       style={{
-        background: 'rgba(8, 12, 20, 0.92)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(4, 8, 20, 0.95)',
+        border: '1px solid rgba(6,182,212,0.15)',
         backdropFilter: 'blur(16px)',
         borderRadius: 12,
         padding: '10px 14px',
         fontSize: 12,
       }}
     >
-      <p style={{ color: '#64748b', marginBottom: 6 }}>{label}</p>
-      {payload.map((p: any) => (
+      <p style={{ color: '#607090', marginBottom: 6 }}>{label}</p>
+      {payload.map((p: TooltipPayload) => (
         <p key={p.dataKey} style={{ color: p.color, fontWeight: 600 }}>
           {p.dataKey === 'mrr' ? 'MRR' : 'Meta'}: R${(p.value / 1000).toFixed(0)}k
         </p>
@@ -47,15 +53,15 @@ export function MRRChart({ data, loading }: Props) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-sm font-semibold text-white">Evolução do MRR</p>
-          <p className="text-xs text-slate-500 mt-0.5">Últimos 6 meses</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Últimos 6 meses</p>
         </div>
-        <div className="flex items-center gap-4 text-xs text-slate-500">
+        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#6366f1' }} />
+            <span className="w-2 h-2 rounded-full" style={{ background: '#06b6d4', boxShadow: '0 0 6px rgba(6,182,212,0.6)' }} />
             Realizado
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#334155' }} />
+            <span className="w-2 h-2 rounded-full" style={{ background: '#334155' }} />
             Meta
           </span>
         </div>
@@ -65,9 +71,11 @@ export function MRRChart({ data, loading }: Props) {
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={data} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
             <defs>
+              {/* Gradiente violet → pink para área sob a linha */}
               <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#7c3aed" stopOpacity={0.4} />
+                <stop offset="50%" stopColor="#ec4899" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="metaGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#334155" stopOpacity={0.2} />
@@ -75,7 +83,7 @@ export function MRRChart({ data, loading }: Props) {
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(6,182,212,0.05)" vertical={false} />
             <XAxis
               dataKey="month"
               tick={{ fill: '#475569', fontSize: 11 }}
@@ -89,7 +97,10 @@ export function MRRChart({ data, loading }: Props) {
               tickFormatter={v => `R$${Math.round(v / 1000)}k`}
               domain={['dataMin - 5000', 'dataMax + 5000']}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(99,102,241,0.2)', strokeWidth: 1 }} />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ stroke: 'rgba(6,182,212,0.2)', strokeWidth: 1 }}
+            />
             <Area
               type="monotone"
               dataKey="meta"
@@ -102,11 +113,12 @@ export function MRRChart({ data, loading }: Props) {
             <Area
               type="monotone"
               dataKey="mrr"
-              stroke="#6366f1"
-              strokeWidth={2}
+              stroke="#06b6d4"
+              strokeWidth={2.5}
               fill="url(#mrrGrad)"
-              dot={{ fill: '#6366f1', strokeWidth: 0, r: 3 }}
-              activeDot={{ r: 5, fill: '#818cf8', strokeWidth: 0 }}
+              dot={{ fill: '#06b6d4', strokeWidth: 0, r: 3 }}
+              activeDot={{ r: 5, fill: '#67e8f9', strokeWidth: 0, filter: 'drop-shadow(0 0 6px #06b6d4)' }}
+              style={{ filter: 'drop-shadow(0 0 4px rgba(6,182,212,0.4))' }}
             />
           </AreaChart>
         </ResponsiveContainer>

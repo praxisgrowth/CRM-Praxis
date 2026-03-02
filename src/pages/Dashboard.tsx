@@ -17,19 +17,25 @@ interface KPIStat {
 function KPICard({ stat, loading }: { stat: KPIStat; loading: boolean }) {
   const Icon = stat.icon
   const deltaColor = stat.deltaUp === true ? '#10b981' : stat.deltaUp === false ? '#ef4444' : '#64748b'
-  const deltaBg   = stat.deltaUp === true ? '#10b98120' : stat.deltaUp === false ? '#ef444420' : '#64748b20'
+  const deltaBg   = stat.deltaUp === true ? 'rgba(16,185,129,0.12)' : stat.deltaUp === false ? 'rgba(239,68,68,0.12)' : 'rgba(100,116,139,0.12)'
 
   return (
-    <div className="glass rounded-2xl p-5 hover:border-white/[0.12] transition-all duration-300">
+    <div
+      className="glass rounded-2xl p-5 transition-all duration-300 cursor-default group"
+      style={{
+        borderLeft: `2px solid ${stat.color}`,
+        boxShadow: `-4px 0 20px ${stat.color}30, 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
+      }}
+    >
       <div className="flex items-center justify-between mb-4">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: `${stat.color}1a`, border: `1px solid ${stat.color}30` }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ background: `${stat.color}15`, border: `1px solid ${stat.color}25` }}
         >
-          <Icon size={18} style={{ color: stat.color }} />
+          <Icon size={16} style={{ color: stat.color }} />
         </div>
         <span
-          className="text-xs font-medium px-2 py-0.5 rounded-full"
+          className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
           style={{ background: deltaBg, color: deltaColor }}
         >
           {stat.delta}
@@ -38,9 +44,14 @@ function KPICard({ stat, loading }: { stat: KPIStat; loading: boolean }) {
       {loading ? (
         <div className="h-8 w-20 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
       ) : (
-        <p className="text-2xl font-bold text-white">{stat.value}</p>
+        <p
+          className="text-2xl font-bold"
+          style={{ color: stat.color, textShadow: `0 0 20px ${stat.color}60` }}
+        >
+          {stat.value}
+        </p>
       )}
-      <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
     </div>
   )
 }
@@ -77,25 +88,25 @@ export function DashboardPage() {
       label: 'Leads Ativos',
       value: loading ? '—' : String(kpis.leadsAtivos),
       delta: '+12%', deltaUp: true,
-      icon: Users, color: '#6366f1',
+      icon: Users, color: '#06b6d4',      // cyan
     },
     {
       label: 'MRR',
       value: loading ? '—' : `R$${Math.round(kpis.mrr / 1000)}k`,
       delta: '+8%', deltaUp: true,
-      icon: DollarSign, color: '#10b981',
+      icon: DollarSign, color: '#a855f7', // purple
     },
     {
       label: 'Taxa Conversão',
       value: loading ? '—' : `${kpis.conversionRate}%`,
       delta: '+3%', deltaUp: true,
-      icon: TrendingUp, color: '#f59e0b',
+      icon: TrendingUp, color: '#f97316', // orange
     },
     {
       label: 'SLA Operação',
       value: loading ? '—' : `${kpis.slaPercent}%`,
-      delta: '→', deltaUp: null,
-      icon: Zap, color: '#8b5cf6',
+      delta: '+5%', deltaUp: true,
+      icon: Zap, color: '#10b981',        // green
     },
   ]
 

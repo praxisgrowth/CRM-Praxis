@@ -71,9 +71,9 @@ function SubItem({ label, to }: { label: string; to: string }) {
       to={to}
       className={({ isActive }) =>
         clsx(
-          'flex items-center gap-2 px-4 py-2 ml-9 rounded-lg text-sm transition-all duration-200',
+          'flex items-center gap-2 px-4 py-2 ml-9 rounded-lg text-xs font-medium transition-all duration-200',
           isActive
-            ? 'text-blue-400 bg-blue-500/10'
+            ? 'text-cyan-400 bg-cyan-500/10'
             : 'text-slate-500 hover:text-slate-300 hover:bg-white/5',
         )
       }
@@ -103,24 +103,29 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
           clsx(
             'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden',
             isActive
-              ? 'text-white bg-blue-500/15 border border-blue-500/25 shadow-[0_0_20px_rgba(30,64,175,0.1)]'
+              ? 'text-white'
               : 'text-slate-400 hover:text-slate-200 hover:bg-white/5',
           )
         }
+        style={({ isActive }) => isActive ? {
+          background: 'linear-gradient(90deg, rgba(6,182,212,0.12), rgba(124,58,237,0.06))',
+          borderLeft: '2px solid #06b6d4',
+          boxShadow: '-3px 0 16px rgba(6,182,212,0.2)',
+        } : {}}
       >
         {({ isActive }) => (
           <>
-            {isActive && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-400 rounded-full" />
-            )}
             <Icon
-              size={18}
+              size={17}
               className={clsx(
                 'flex-shrink-0 transition-colors',
-                isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300',
+                isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300',
               )}
+              style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(6,182,212,0.6))' } : {}}
             />
-            {!collapsed && <span className="truncate">{item.label}</span>}
+            {!collapsed && (
+              <span className={isActive ? 'text-cyan-300' : ''}>{item.label}</span>
+            )}
           </>
         )}
       </NavLink>
@@ -134,24 +139,24 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
         className={clsx(
           'group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
           isChildActive
-            ? 'text-blue-300 bg-blue-500/10'
+            ? 'text-cyan-300 bg-cyan-500/8'
             : 'text-slate-400 hover:text-slate-200 hover:bg-white/5',
         )}
       >
         <Icon
-          size={18}
+          size={17}
           className={clsx(
             'flex-shrink-0 transition-colors',
-            isChildActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300',
+            isChildActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300',
           )}
         />
         {!collapsed && (
           <>
             <span className="flex-1 text-left truncate">{item.label}</span>
             {open ? (
-              <ChevronDown size={14} className="text-slate-500" />
+              <ChevronDown size={13} className="text-slate-600" />
             ) : (
-              <ChevronRight size={14} className="text-slate-500" />
+              <ChevronRight size={13} className="text-slate-600" />
             )}
           </>
         )}
@@ -176,20 +181,30 @@ export function Sidebar() {
     <aside
       className={clsx(
         'relative flex flex-col h-full transition-all duration-300 ease-in-out',
-        'glass border-r border-white/[0.06]',
+        'border-r',
         collapsed ? 'w-[64px]' : 'w-[240px]',
       )}
-      style={{ background: 'rgba(8, 12, 20, 0.85)' }}
+      style={{
+        background: 'rgba(4, 8, 20, 0.92)',
+        borderColor: 'rgba(6,182,212,0.08)',
+        backdropFilter: 'blur(20px)',
+      }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/[0.06]">
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+      <div
+        className="flex items-center gap-3 px-4 py-5"
+        style={{ borderBottom: '1px solid rgba(6,182,212,0.07)' }}
+      >
+        <div
+          className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(124,58,237,0.2))', border: '1px solid rgba(6,182,212,0.2)' }}
+        >
           <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="text-sm font-semibold text-white leading-none">Praxis</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">CRM Premium</p>
+            <p className="text-sm font-bold text-white leading-none tracking-wide">Praxis</p>
+            <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'rgba(6,182,212,0.6)' }}>CRM Premium</p>
           </div>
         )}
       </div>
