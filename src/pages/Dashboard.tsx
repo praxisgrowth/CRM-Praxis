@@ -17,41 +17,46 @@ interface KPIStat {
 function KPICard({ stat, loading }: { stat: KPIStat; loading: boolean }) {
   const Icon = stat.icon
   const deltaColor = stat.deltaUp === true ? '#10b981' : stat.deltaUp === false ? '#ef4444' : '#64748b'
-  const deltaBg   = stat.deltaUp === true ? 'rgba(16,185,129,0.12)' : stat.deltaUp === false ? 'rgba(239,68,68,0.12)' : 'rgba(100,116,139,0.12)'
 
   return (
     <div
-      className="glass rounded-2xl p-5 transition-all duration-300 cursor-default group"
+      className="rounded-2xl p-5 transition-all duration-300 cursor-default"
       style={{
-        borderLeft: `2px solid ${stat.color}`,
-        boxShadow: `-4px 0 20px ${stat.color}30, 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
+        background: `linear-gradient(135deg, ${stat.color}18 0%, ${stat.color}08 60%, rgba(4,8,20,0.95) 100%)`,
+        border: `1px solid ${stat.color}25`,
+        boxShadow: `0 0 24px ${stat.color}18, 0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 ${stat.color}15`,
       }}
     >
+      {/* Ícone + badge no topo */}
       <div className="flex items-center justify-between mb-4">
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: `${stat.color}15`, border: `1px solid ${stat.color}25` }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: `${stat.color}20`, border: `1px solid ${stat.color}30` }}
         >
-          <Icon size={16} style={{ color: stat.color }} />
+          <Icon size={15} style={{ color: stat.color }} />
         </div>
         <span
-          className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-          style={{ background: deltaBg, color: deltaColor }}
+          className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: 'rgba(16,185,129,0.12)', color: deltaColor }}
         >
           {stat.delta}
         </span>
       </div>
+
+      {/* Valor principal */}
       {loading ? (
-        <div className="h-8 w-20 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-10 w-24 rounded-xl animate-pulse mb-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
       ) : (
         <p
-          className="text-2xl font-bold"
-          style={{ color: stat.color, textShadow: `0 0 20px ${stat.color}60` }}
+          className="text-4xl font-black leading-none mb-1"
+          style={{ color: stat.color, textShadow: `0 0 28px ${stat.color}70` }}
         >
           {stat.value}
         </p>
       )}
-      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
+
+      {/* Label */}
+      <p className="text-xs font-medium mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>{stat.label}</p>
     </div>
   )
 }

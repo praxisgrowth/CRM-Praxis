@@ -1,5 +1,4 @@
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import type { Client, Trend } from '../../lib/database.types'
+import type { Client } from '../../lib/database.types'
 
 interface Props {
   clients: Client[]
@@ -13,26 +12,45 @@ function scoreColor(s: number) {
 }
 
 function scoreLabel(s: number) {
-  if (s >= 80) return 'Excelente'
-  if (s >= 60) return 'Atenção'
-  return 'Crítico'
+  if (s >= 80) return 'Excellent'
+  if (s >= 60) return 'Attention'
+  if (s >= 40) return 'Attention'
+  return 'Critical'
 }
 
-function TrendIcon({ trend }: { trend: Trend }) {
-  if (trend === 'up')   return <TrendingUp   size={12} className="text-emerald-400" />
-  if (trend === 'down') return <TrendingDown  size={12} className="text-red-400" />
-  return                       <Minus         size={12} className="text-slate-500" />
-}
+/* Mini sparkline SVG */
+function Sparkline({ color, trend }: { color: string; trend: string }) {
+  const upPoints  = '0,28 8,22 16,24 24,14 32,16 40,8  48,4'
+  const downPoints= '0,4  8,8  16,6  24,16 32,14 40,22 48,28'
+  const flatPoints= '0,16 8,14 16,18 24,12 32,16 40,15 48,16'
+  const pts = trend === 'up' ? upPoints : trend === 'down' ? downPoints : flatPoints
 
-function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)' }}>
-      <div className="w-9 h-9 rounded-xl animate-pulse flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="flex-1 space-y-1.5">
-        <div className="h-3 w-24 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <div className="h-2 w-32 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+    <svg width="52" height="32" viewBox="0 0 52 32" fill="none">
+      <polyline
+        points={pts}
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+      />
+    </svg>
+  )
+}
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl animate-pulse flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3 w-24 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-2 w-32 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        </div>
       </div>
-      <div className="h-3 w-12 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-3 w-16 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
     </div>
   )
 }
@@ -40,64 +58,81 @@ function SkeletonRow() {
 export function ClientHealthList({ clients, loading }: Props) {
   return (
     <div className="glass rounded-2xl p-6">
+      {/* Header da seção */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-sm font-semibold text-white">Health Score · Clientes</p>
-          <p className="text-xs text-slate-500 mt-0.5">Monitoramento em tempo real</p>
+          <p className="text-sm font-semibold text-white">Client Health Score</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Monitoramento em tempo real</p>
         </div>
         <button
-          className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-          style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}
+          className="text-xs px-3 py-1.5 rounded-lg transition-colors font-medium"
+          style={{ background: 'rgba(6,182,212,0.1)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.2)' }}
         >
           Ver todos
         </button>
       </div>
 
-      <div className="space-y-3">
+      {/* Grid 3 colunas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {loading
-          ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+          ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           : clients.map(client => {
               const color = scoreColor(client.health_score)
-              const mrrLabel = `R$${Math.round(client.mrr / 1000)}k`
+              const label = scoreLabel(client.health_score)
+              const mrrLabel = `R$${Math.round(client.mrr / 1000)}k/mês`
+
               return (
                 <div
                   key={client.id}
-                  className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 cursor-pointer"
-                  style={{ background: 'rgba(255,255,255,0.02)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                  className="rounded-2xl p-4 transition-all duration-200 cursor-pointer"
+                  style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    e.currentTarget.style.borderColor = `${color}30`
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                  }}
                 >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                    style={{ background: `${color}22`, border: `1px solid ${color}44` }}
-                  >
-                    {client.avatar}
+                  {/* Topo: avatar + nome + nicho */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                      style={{ background: `${color}20`, border: `1px solid ${color}40` }}
+                    >
+                      {client.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-white truncate">{client.name}</p>
+                      </div>
+                      <p className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                        {client.segment} · {mrrLabel}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-medium text-white truncate">{client.name}</p>
-                      <TrendIcon trend={client.trend} />
-                    </div>
-                    <p className="text-xs text-slate-500">{client.segment} · {mrrLabel}/mês</p>
-                  </div>
+                  {/* Rodapé: status badge + sparkline + score */}
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                      style={{ background: `${color}15`, color, border: `1px solid ${color}25` }}
+                    >
+                      {label}
+                    </span>
 
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                        style={{ background: `${color}20`, color }}
-                      >
-                        {scoreLabel(client.health_score)}
-                      </span>
-                      <span className="text-sm font-bold" style={{ color }}>{client.health_score}</span>
-                    </div>
-                    <div className="w-20 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div
-                        className="h-1 rounded-full"
-                        style={{ width: `${client.health_score}%`, background: color }}
-                      />
-                    </div>
+                    <Sparkline color={color} trend={client.trend} />
+
+                    <span
+                      className="text-xl font-black"
+                      style={{ color, textShadow: `0 0 16px ${color}60` }}
+                    >
+                      {client.health_score}
+                    </span>
                   </div>
                 </div>
               )
