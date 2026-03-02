@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* ─── Tailwind v4 custom tokens ─────────────────── */
+@theme {
+  --color-praxis-dark:   #0d1117;
+  --color-praxis-card:   rgba(14, 20, 35, 0.85);
+  --color-praxis-blue:   #06b6d4;
+  --color-praxis-purple: #7c3aed;
+  --color-praxis-pink:   #ec4899;
+  --color-praxis-green:  #10b981;
+  --color-praxis-orange: #f59e0b;
+}
+
+
 /* ═══════════════════════════════════════════════════
    PRAXIS CRM — NEON DARK DESIGN SYSTEM
    Paleta: Cyan (#06b6d4) · Violet (#7c3aed) · Pink (#ec4899)
@@ -110,7 +122,9 @@ body {
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--shadow-card);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 0 14px rgba(6, 182, 212, 0.04);
 }
 
 .glass-neon {

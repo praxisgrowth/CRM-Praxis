@@ -114,11 +114,11 @@ export function MRRChart({ data, loading }: Props) {
               type="monotone"
               dataKey="mrr"
               stroke="#06b6d4"
-              strokeWidth={2.5}
+              strokeWidth={3}
               fill="url(#mrrGrad)"
               dot={{ fill: '#06b6d4', strokeWidth: 0, r: 3 }}
               activeDot={{ r: 5, fill: '#67e8f9', strokeWidth: 0, filter: 'drop-shadow(0 0 6px #06b6d4)' }}
-              style={{ filter: 'drop-shadow(0 0 4px rgba(6,182,212,0.4))' }}
+              style={{ filter: 'drop-shadow(0 0 8px #00d2ff)' }}
             />
           </AreaChart>
         </ResponsiveContainer>
