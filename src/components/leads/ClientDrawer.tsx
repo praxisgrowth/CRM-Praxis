@@ -1,0 +1,125 @@
+import { X, LayoutGrid, Maximize2, Minimize2 } from 'lucide-react'
+import { useState } from 'react'
+import type { Lead } from '../../lib/database.types'
+import { SDRPlaybook } from './SDRPlaybook'
+import { SDRChat } from './SDRChat'
+import { SDRQualification } from './SDRQualification'
+import clsx from 'clsx'
+
+interface Props {
+  lead: Lead
+  onClose: () => void
+}
+
+export function ClientDrawer({ lead, onClose }: Props) {
+  const [isExpanded, setIsExpanded] = useState(true)
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40 transition-all duration-500"
+        style={{ 
+          background: 'rgba(0,0,0,0.45)', 
+          backdropFilter: 'blur(4px)',
+          opacity: 1
+        }}
+        onClick={onClose}
+      />
+
+      {/* Workspace SDR Panel */}
+      <aside
+        className={clsx(
+          "fixed top-0 right-0 z-50 h-full flex flex-col transition-all duration-500 ease-in-out",
+          isExpanded ? "w-[min(1440px,95vw)]" : "w-[min(480px,100vw)]"
+        )}
+        style={{
+          background: 'rgba(8,12,20,0.98)',
+          borderLeft: '1px solid rgba(99,102,241,0.2)',
+          boxShadow: '-24px 0 80px rgba(0,0,0,0.8)',
+        }}
+      >
+        {/* Workspace Header */}
+        <div
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+          style={{ 
+            borderBottom: '1px solid rgba(255,255,255,0.06)', 
+            background: 'linear-gradient(90deg, rgba(99,102,241,0.08), rgba(139,92,246,0.08))' 
+          }}
+        >
+          <div className="flex items-center gap-4 min-w-0">
+             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">
+                {lead.name[0]}
+             </div>
+             <div>
+                <div className="flex items-center gap-2">
+                   <h2 className="text-sm font-bold text-white truncate">{lead.name}</h2>
+                   <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[9px] font-bold uppercase border border-blue-500/20">
+                     SDR Workspace
+                   </span>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-0.5">Gestão Ativa & Playbook de Vendas</p>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+             <button
+               onClick={() => setIsExpanded(!isExpanded)}
+               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+               title={isExpanded ? "Contrair" : "Expandir Workspace"}
+             >
+               {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+             </button>
+             <div className="w-px h-6 bg-white/5" />
+             <button
+               onClick={onClose}
+               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+             >
+               <X size={18} />
+             </button>
+          </div>
+        </div>
+
+        {/* Workspace Content (3 Columns) */}
+        <div className="flex-1 overflow-hidden flex">
+          {isExpanded ? (
+            <>
+              {/* Coluna 1: Playbook (25%) */}
+              <div className="w-[320px] flex-shrink-0 h-full border-r border-white/5">
+                 <SDRPlaybook lead={lead} />
+              </div>
+
+              {/* Coluna 2: Omnichannel Chat (45%) */}
+              <div className="flex-1 h-full bg-black/10">
+                 <SDRChat lead={lead} />
+              </div>
+
+              {/* Coluna 3: CRM Data (30%) */}
+              <div className="w-[360px] flex-shrink-0 h-full border-l border-white/5 bg-white/[0.01]">
+                 <SDRQualification lead={lead} />
+              </div>
+            </>
+          ) : (
+            /* Versão compacta (original mais refinada) */
+            <div className="flex-1 overflow-y-auto">
+               <SDRQualification lead={lead} />
+            </div>
+          )}
+        </div>
+
+        {/* Global Action Bar (Footer) */}
+        {!isExpanded && (
+          <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+             <button 
+               onClick={() => setIsExpanded(true)}
+               className="w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/20 flex items-center justify-center gap-2 transition-all"
+             >
+               <LayoutGrid size={14} />
+               Abrir Workspace SDR Completo
+             </button>
+          </div>
+        )}
+      </aside>
+    </>
+  )
+}
