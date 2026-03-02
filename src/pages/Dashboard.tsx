@@ -22,41 +22,44 @@ function KPICard({ stat, loading }: { stat: KPIStat; loading: boolean }) {
     <div
       className="rounded-2xl p-5 transition-all duration-300 cursor-default"
       style={{
-        background: `linear-gradient(135deg, ${stat.color}18 0%, ${stat.color}08 60%, rgba(4,8,20,0.95) 100%)`,
-        border: `1px solid ${stat.color}25`,
-        boxShadow: `0 0 24px ${stat.color}18, 0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 ${stat.color}15`,
+        background: 'rgba(14, 20, 35, 0.72)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 4px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = `${stat.color}35`; e.currentTarget.style.boxShadow = `0 4px 32px rgba(0,0,0,0.55), 0 0 20px ${stat.color}14, inset 0 1px 0 rgba(255,255,255,0.06)` }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = '0 4px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)' }}
     >
-      {/* Ícone + badge no topo */}
+      {/* Ícone + delta no topo */}
       <div className="flex items-center justify-between mb-4">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: `${stat.color}20`, border: `1px solid ${stat.color}30` }}
+          style={{ background: `${stat.color}18`, border: `1px solid ${stat.color}28` }}
         >
-          <Icon size={15} style={{ color: stat.color }} />
+          <Icon size={15} style={{ color: stat.color, filter: `drop-shadow(0 0 6px ${stat.color})` }} />
         </div>
         <span
           className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(16,185,129,0.12)', color: deltaColor }}
+          style={{ background: `${deltaColor}18`, color: deltaColor }}
         >
           {stat.delta}
         </span>
       </div>
 
-      {/* Valor principal */}
+      {/* Valor principal — cor neon com glow */}
       {loading ? (
-        <div className="h-10 w-24 rounded-xl animate-pulse mb-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-10 w-24 rounded-xl animate-pulse mb-2" style={{ background: 'rgba(255,255,255,0.05)' }} />
       ) : (
         <p
-          className="text-4xl font-black leading-none mb-1"
-          style={{ color: stat.color, textShadow: `0 0 28px ${stat.color}70` }}
+          className="text-4xl font-black leading-none"
+          style={{ color: stat.color, textShadow: `0 0 20px ${stat.color}90, 0 0 40px ${stat.color}35` }}
         >
           {stat.value}
         </p>
       )}
 
       {/* Label */}
-      <p className="text-xs font-medium mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>{stat.label}</p>
+      <p className="text-xs font-medium mt-2.5" style={{ color: 'rgba(148,163,184,0.55)' }}>{stat.label}</p>
     </div>
   )
 }
