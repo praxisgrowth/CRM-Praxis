@@ -3,9 +3,9 @@
 /* ─── Tailwind v4 custom tokens ─────────────────── */
 @theme {
   --color-praxis-dark:   #0d1117;
-  --color-praxis-card:   rgba(14, 20, 35, 0.85);
-  --color-praxis-blue:   #06b6d4;
-  --color-praxis-purple: #7c3aed;
+  --color-praxis-card:   rgba(23, 27, 33, 0.7);
+  --color-praxis-blue:   #00d2ff;
+  --color-praxis-purple: #9d50bb;
   --color-praxis-pink:   #ec4899;
   --color-praxis-green:  #10b981;
   --color-praxis-orange: #f59e0b;
@@ -14,31 +14,31 @@
 
 /* ═══════════════════════════════════════════════════
    PRAXIS CRM — NEON DARK DESIGN SYSTEM
-   Paleta: Cyan (#06b6d4) · Violet (#7c3aed) · Pink (#ec4899)
-   Modo: Dark Glassmorphism + Neon Glow
+   Paleta: Cyan (#00d2ff) · Purple (#9d50bb) · Pink (#ec4899)
+   Modo: Dark Glassmorphism + Neon Glow (Stitch)
 ════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ─── Design Tokens ─────────────────────────────── */
 :root {
-  /* Fundos */
-  --bg-base:     #040810;
-  --bg-surface:  #080d18;
-  --bg-elevated: #0d1424;
-  --bg-card:     rgba(8, 15, 30, 0.85);
+  /* Fundos — base GitHub Dark (referência praxis_crm_tech_dashboard) */
+  --bg-base:     #0d1117;
+  --bg-surface:  #10161d;
+  --bg-elevated: #141c26;
+  --bg-card:     rgba(13, 17, 23, 0.88);
 
   /* Cores de destaque neon */
-  --neon-cyan:   #06b6d4;
-  --neon-violet: #7c3aed;
+  --neon-cyan:   #00d2ff;
+  --neon-violet: #9d50bb;
   --neon-pink:   #ec4899;
   --neon-green:  #10b981;
   --neon-orange: #f59e0b;
   --neon-red:    #ef4444;
 
   /* Glow de cada cor */
-  --glow-cyan:   rgba(6, 182, 212, 0.3);
-  --glow-violet: rgba(124, 58, 237, 0.35);
+  --glow-cyan:   rgba(0, 210, 255, 0.35);
+  --glow-violet: rgba(157, 80, 187, 0.35);
   --glow-pink:   rgba(236, 72, 153, 0.3);
   --glow-green:  rgba(16, 185, 129, 0.3);
   --glow-orange: rgba(245, 158, 11, 0.3);
@@ -65,7 +65,7 @@
   --color-border: var(--border-glass);
 
   /* Glass */
-  --glass-bg:    rgba(6, 12, 28, 0.7);
+  --glass-bg:    rgba(13, 17, 23, 0.8);
   --glass-border: rgba(99, 180, 255, 0.1);
   --glass-blur:  16px;
 
@@ -76,7 +76,7 @@
   --radius-xl:  26px;
 
   /* Sombras */
-  --shadow-glow: 0 0 40px rgba(6, 182, 212, 0.1);
+  --shadow-glow: 0 0 40px rgba(0, 210, 255, 0.15);
   --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.04);
 
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -100,8 +100,9 @@ html, body, #root {
 body {
   background-color: var(--bg-base);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124, 58, 237, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 90%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+    radial-gradient(ellipse 90% 55% at 50% -5%, rgba(157, 80, 187, 0.14) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 45% at 85% 95%, rgba(0, 210, 255, 0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 35% at 5% 55%, rgba(0, 210, 255, 0.05) 0%, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -109,7 +110,7 @@ body {
 ::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.3);
+  background: rgba(157, 80, 187, 0.3);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -124,14 +125,26 @@ body {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   box-shadow:
     var(--shadow-card),
-    inset 0 0 14px rgba(6, 182, 212, 0.04);
+    inset 0 0 14px rgba(0, 210, 255, 0.04);
 }
 
 .glass-neon {
   background: var(--glass-bg);
-  border: 1px solid rgba(6, 182, 212, 0.18);
+  border: 1px solid rgba(0, 210, 255, 0.18);
   backdrop-filter: blur(var(--glass-blur));
-  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.06), var(--shadow-card);
+  box-shadow: 0 0 0 1px rgba(0, 210, 255, 0.06), var(--shadow-card);
+}
+
+/* ─── Glass Card utilitária (Stitch) ─────────────── */
+.glass-card {
+  background: rgba(23, 27, 33, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 4px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 20px rgba(0, 210, 255, 0.04);
 }
 
 /* ─── KPI Card Variants (borda colorida lateral) ─── */
@@ -215,7 +228,7 @@ body {
 
 /* ─── Sidebar active item ────────────────────────── */
 .nav-active {
-  background: linear-gradient(90deg, rgba(6,182,212,0.12), rgba(124,58,237,0.08));
+  background: linear-gradient(90deg, rgba(0,210,255,0.12), rgba(157,80,187,0.08));
   border-left: 2px solid var(--neon-cyan);
   color: var(--neon-cyan) !important;
 }
@@ -224,8 +237,8 @@ body {
   transition: all 0.18s ease;
 }
 .nav-item:hover {
-  background: rgba(6,182,212,0.06);
-  border-left-color: rgba(6, 182, 212, 0.3);
+  background: rgba(0,210,255,0.06);
+  border-left-color: rgba(0, 210, 255, 0.3);
   color: var(--text-primary);
 }
 

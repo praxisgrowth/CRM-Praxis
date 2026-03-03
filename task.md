@@ -21,18 +21,47 @@
 
 ---
 
-## Fase 2 · Core CRM (próxima)
+## Fase 2 · Core CRM (em andamento)
 
 | # | Tarefa | Status |
 |---|--------|--------|
-| 2.1 | Módulo de Leads: listagem, filtros, scoring | ⬜ |
+| 2.1 | Módulo de Leads: listagem, filtros, scoring | ✅ |
 | 2.2 | Pipeline Kanban com drag-and-drop | ✅ |
-| 2.3 | Detalhe do Lead / Contato (timeline de atividades) | ⬜ |
-| 2.4 | Dashboard com gráficos reais (Recharts ou Tremor) | ⬜ |
+| 2.3 | Detalhe do Lead / Contato (timeline de atividades) | ✅ |
+| 2.4 | Dashboard com gráficos reais (Recharts) — visual Stitch/Glassmorphism | ✅ |
 | 2.5 | Módulo Financeiro: MRR, churn, projeções | ⬜ |
-| 2.6 | Módulo Operação: SLA, tarefas, projetos | ⬜ |
+| 2.6 | Módulo Operação: SLA, tarefas, projetos | ✅ |
 | 2.7 | Sistema de busca global (⌘K) | ⬜ |
 | 2.8 | Notificações e toast system | ⬜ |
+
+### Supabase · Persistência Real (concluído)
+
+| Item | Detalhe |
+|------|---------|
+| `useLeads` | `fetchLeads` usa dados do banco com precedência total (mesmo 0 resultados); `addLead` sem `as any` |
+| `useOperations` | `load` sem guard `if merged.length`; `addProject` sem `as any`; logs claros de erro |
+| `useDashboard` | guards `if (data?.length)` removidos; `leadsAtivos` usa count real sem fallback estático |
+| Schema | `supabase_operation_schema_REV.sql` — tabelas `projects` + `tasks` com RLS e dados de exemplo |
+| Verificação | `test_persistence.mjs` — inserção + validação UUID + limpeza automática |
+
+### Timeline de Atividades (2.3) — concluído
+
+| Item | Detalhe |
+|------|---------|
+| `lead_activities_migration.sql` | Tabela com FK para leads, RLS público, trigger de criação automática, seed para leads existentes |
+| `ActivityType` / `LeadActivity` | Tipos adicionados em `database.types.ts` com entrada no generic `Database` |
+| `useLeadActivities.ts` | Hook com busca tipada, insert optimistic e revert em caso de erro |
+| `ActivityTimeline.tsx` | Componente com ícone/cor por tipo, tempo relativo, textarea + Ctrl+Enter, skeleton |
+| `SDRQualification.tsx` | Textarea estático substituído pela `ActivityTimeline` ao vivo |
+
+### SDR Workspace 3 Colunas — concluído
+
+| Item | Detalhe |
+|------|---------|
+| `ClientDrawer.tsx` | Estado `chatDraft` + `setChatDraft` para ligar Playbook → Chat via props |
+| `SDRPlaybook.tsx` | Campo de nicho editável (`nichoOverride`), botão "Usar no Chat" (prop `onUseInChat`), feedback "Copiado!" 2s, import `clsx` do pacote |
+| `SDRChat.tsx` | QUICK_REPLIES com scripts reais (lambda `(name) => string`), `onClick` preenche textarea, aceita prop `draft` + `onDraftChange` para receber texto do Playbook |
+| `SDRQualification.tsx` | Seção Diagnóstico: `input` para Faturamento, `select` para Tamanho do Time, `textarea` para Dores — estado local |
 
 ---
 

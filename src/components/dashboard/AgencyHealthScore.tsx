@@ -79,8 +79,8 @@ export function AgencyHealthScore({ clients, loading }: Props) {
               >
                 <defs>
                   <linearGradient id="gaugeGrad" x1="1" y1="0" x2="0" y2="0">
-                    <stop offset="0%"  stopColor="#06b6d4" />
-                    <stop offset="100%" stopColor="#7c3aed" />
+                    <stop offset="0%"  stopColor="#00d2ff" />
+                    <stop offset="100%" stopColor="#9d50bb" />
                   </linearGradient>
                 </defs>
                 <RadialBar
@@ -120,7 +120,7 @@ export function AgencyHealthScore({ clients, loading }: Props) {
             ))
           : pillars.map((p, i) => {
               // Alterna entre cyan, violet, pink, green
-              const neonColors = ['#06b6d4', '#7c3aed', '#ec4899', '#10b981']
+              const neonColors = ['#00d2ff', '#9d50bb', '#ec4899', '#10b981']
               const neonColor = neonColors[i % neonColors.length]
               return (
                 <div key={p.label}>

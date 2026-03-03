@@ -108,9 +108,9 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
           )
         }
         style={({ isActive }) => isActive ? {
-          background: 'linear-gradient(90deg, rgba(6,182,212,0.12), rgba(124,58,237,0.06))',
-          borderLeft: '2px solid #06b6d4',
-          boxShadow: '-3px 0 16px rgba(6,182,212,0.2)',
+          background: 'linear-gradient(90deg, rgba(0,210,255,0.13), rgba(157,80,187,0.07))',
+          borderLeft: '2px solid #00d2ff',
+          boxShadow: '-3px 0 18px rgba(0,210,255,0.25)',
         } : {}}
       >
         {({ isActive }) => (
@@ -121,7 +121,7 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
                 'flex-shrink-0 transition-colors',
                 isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300',
               )}
-              style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(6,182,212,0.6))' } : {}}
+              style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(0,210,255,0.7))' } : {}}
             />
             {!collapsed && (
               <span className={isActive ? 'text-cyan-300' : ''}>{item.label}</span>
@@ -186,25 +186,25 @@ export function Sidebar() {
       )}
       style={{
         background: 'rgba(4, 8, 20, 0.92)',
-        borderColor: 'rgba(6,182,212,0.08)',
+        borderColor: 'rgba(0,210,255,0.08)',
         backdropFilter: 'blur(20px)',
       }}
     >
       {/* Logo */}
       <div
         className="flex items-center gap-3 px-4 py-5"
-        style={{ borderBottom: '1px solid rgba(6,182,212,0.07)' }}
+        style={{ borderBottom: '1px solid rgba(0,210,255,0.07)' }}
       >
         <div
           className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(124,58,237,0.2))', border: '1px solid rgba(6,182,212,0.2)' }}
+          style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.2), rgba(157,80,187,0.2))', border: '1px solid rgba(0,210,255,0.2)' }}
         >
           <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="text-sm font-bold text-white leading-none tracking-wide">Praxis</p>
-            <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'rgba(6,182,212,0.6)' }}>CRM Premium</p>
+            <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'rgba(0,210,255,0.65)' }}>Tech Dashboard</p>
           </div>
         )}
       </div>

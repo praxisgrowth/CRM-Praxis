@@ -12,7 +12,7 @@ export interface AgencySettings {
 }
 
 const DEFAULTS: AgencySettings = {
-  id: null,
+  id:          null,
   user_name:   'Gustavo Moura',
   user_email:  'gustavo@praxis.com',
   user_role:   'CEO & Founder',
@@ -38,13 +38,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('agency_settings')
         .select('*')
         .limit(1)
         .maybeSingle()
 
       if (data) setSettings(data as AgencySettings)
+    } catch (e) {
+      console.error('[SettingsContext] load error:', e)
     } finally {
       setLoading(false)
     }
@@ -61,14 +63,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     try {
       if (settings.id) {
-        await (supabase as any)
+        await supabase
           .from('agency_settings')
           .update(updates)
           .eq('id', settings.id)
       } else {
-        const { data } = await (supabase as any)
+        // First save: insert row without passing id (auto-generated)
+        const { id: _id, ...defaultsWithoutId } = DEFAULTS
+        const { data } = await supabase
           .from('agency_settings')
-          .insert({ ...DEFAULTS, ...updates })
+          .insert({ ...defaultsWithoutId, ...updates })
           .select()
           .maybeSingle()
 
@@ -76,7 +80,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {
       console.error('[SettingsContext] save error:', e)
-      // Rollback se necessário, mas para esse caso o optimistic costuma ser ok
     } finally {
       setSaving(false)
     }
@@ -97,11 +100,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         .from('agency')
         .getPublicUrl(path)
 
+      // Auto-persist logo_url immediately after upload
+      await save({ logo_url: data.publicUrl })
+
       return data.publicUrl
-    } catch {
+    } catch (e) {
+      console.error('[SettingsContext] uploadLogo error:', e)
       return null
     }
-  }, [])
+  }, [save])
 
   return (
     <SettingsContext.Provider value={{ settings, loading, saving, save, uploadLogo }}>

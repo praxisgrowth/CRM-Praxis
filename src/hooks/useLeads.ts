@@ -48,11 +48,14 @@ export function useLeads(): UseLeadsResult {
         .order('score', { ascending: false })
 
       if (sbErr) throw sbErr
-      if (data?.length) setLeads(data as Lead[])
+
+      // Banco tem precedência total: mesmo com 0 resultados, substitui o fallback
+      setLeads((data ?? []) as Lead[])
+      console.info(`[useLeads] ${(data ?? []).length} leads carregados do Supabase.`)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro ao carregar leads'
+      const msg = err instanceof Error ? err.message : String(err)
       setError(msg)
-      console.warn('[useLeads] Usando dados fallback:', msg)
+      console.error('[useLeads] Falha ao buscar leads, mantendo fallback:', msg)
     } finally {
       setLoading(false)
     }
@@ -60,7 +63,7 @@ export function useLeads(): UseLeadsResult {
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
 
-  /** Optimistic insert */
+  /** Optimistic insert — tipagem correta via createClient<Database> */
   const addLead = useCallback(async (input: NewLeadInput) => {
     const optimistic: Lead = {
       ...input,
@@ -70,17 +73,21 @@ export function useLeads(): UseLeadsResult {
     }
     setLeads(prev => [optimistic, ...prev].sort((a, b) => b.score - a.score))
 
-    const { data, error: sbErr } = await (supabase as any)
+    const { data, error: sbErr } = await supabase
       .from('leads')
       .insert(input)
       .select()
       .single()
 
     if (sbErr) {
+      console.error('[useLeads] Falha ao inserir lead, revertendo optimistic:', sbErr.message)
       setLeads(prev => prev.filter(l => l.id !== optimistic.id))
       throw sbErr
     }
-    setLeads(prev => prev.map(l => l.id === optimistic.id ? data as Lead : l))
+
+    // Substitui o registro temporário pelo retorno real do Supabase (UUID definitivo)
+    setLeads(prev => prev.map(l => l.id === optimistic.id ? data : l))
+    console.info('[useLeads] Lead persistido com ID:', data.id)
   }, [])
 
   return { leads, loading, error, refetch: fetchLeads, addLead }

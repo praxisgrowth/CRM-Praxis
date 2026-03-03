@@ -15,51 +15,46 @@ interface KPIStat {
 }
 
 function KPICard({ stat, loading }: { stat: KPIStat; loading: boolean }) {
-  const Icon = stat.icon
   const deltaColor = stat.deltaUp === true ? '#10b981' : stat.deltaUp === false ? '#ef4444' : '#64748b'
 
   return (
     <div
-      className="rounded-2xl p-5 transition-all duration-300 cursor-default"
+      className="rounded-3xl p-6 cursor-default"
       style={{
-        background: 'rgba(14, 20, 35, 0.72)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: `linear-gradient(135deg, ${stat.color}14 0%, rgba(13,17,23,0.92) 65%)`,
+        border: `1px solid ${stat.color}25`,
         backdropFilter: 'blur(20px)',
-        boxShadow: '0 4px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',
+        boxShadow: `0 4px 32px rgba(0,0,0,0.55), inset 0 0 30px ${stat.color}06, inset 0 1px 0 rgba(255,255,255,0.05)`,
+        transition: 'all 0.3s ease',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = `${stat.color}35`; e.currentTarget.style.boxShadow = `0 4px 32px rgba(0,0,0,0.55), 0 0 20px ${stat.color}14, inset 0 1px 0 rgba(255,255,255,0.06)` }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = '0 4px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'scale(1.02) translateY(-2px)'
+        e.currentTarget.style.borderColor = `${stat.color}45`
+        e.currentTarget.style.boxShadow = `0 8px 40px rgba(0,0,0,0.6), 0 0 30px ${stat.color}18, inset 0 0 30px ${stat.color}0a, inset 0 1px 0 rgba(255,255,255,0.08)`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'scale(1) translateY(0)'
+        e.currentTarget.style.borderColor = `${stat.color}25`
+        e.currentTarget.style.boxShadow = `0 4px 32px rgba(0,0,0,0.55), inset 0 0 30px ${stat.color}06, inset 0 1px 0 rgba(255,255,255,0.05)`
+      }}
     >
-      {/* Ícone + delta no topo */}
-      <div className="flex items-center justify-between mb-4">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: `${stat.color}18`, border: `1px solid ${stat.color}28` }}
-        >
-          <Icon size={15} style={{ color: stat.color, filter: `drop-shadow(0 0 6px ${stat.color})` }} />
-        </div>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: `${deltaColor}18`, color: deltaColor }}
-        >
-          {stat.delta}
-        </span>
-      </div>
-
-      {/* Valor principal — cor neon com glow */}
+      {/* Value — dominant, neon glow */}
       {loading ? (
-        <div className="h-10 w-24 rounded-xl animate-pulse mb-2" style={{ background: 'rgba(255,255,255,0.05)' }} />
+        <div className="h-12 w-28 rounded-xl animate-pulse mb-3" style={{ background: 'rgba(255,255,255,0.05)' }} />
       ) : (
-        <p
-          className="text-4xl font-black leading-none"
-          style={{ color: stat.color, textShadow: `0 0 20px ${stat.color}90, 0 0 40px ${stat.color}35` }}
+        <span
+          className="text-5xl font-black block leading-none mb-3"
+          style={{ color: stat.color, textShadow: `0 0 24px ${stat.color}80, 0 0 48px ${stat.color}30` }}
         >
           {stat.value}
-        </p>
+        </span>
       )}
 
       {/* Label */}
-      <p className="text-xs font-medium mt-2.5" style={{ color: 'rgba(148,163,184,0.55)' }}>{stat.label}</p>
+      <h4 className="text-sm font-medium mb-1.5" style={{ color: 'rgba(148,163,184,0.65)' }}>{stat.label}</h4>
+
+      {/* Delta */}
+      <p className="text-xs font-bold" style={{ color: deltaColor }}>{stat.delta}</p>
     </div>
   )
 }
@@ -96,25 +91,25 @@ export function DashboardPage() {
       label: 'Leads Ativos',
       value: loading ? '—' : String(kpis.leadsAtivos),
       delta: '+12%', deltaUp: true,
-      icon: Users, color: '#06b6d4',      // cyan
+      icon: Users, color: '#00d2ff',
     },
     {
       label: 'MRR',
       value: loading ? '—' : `R$${Math.round(kpis.mrr / 1000)}k`,
       delta: '+8%', deltaUp: true,
-      icon: DollarSign, color: '#a855f7', // purple
+      icon: DollarSign, color: '#9d50bb',
     },
     {
       label: 'Taxa Conversão',
       value: loading ? '—' : `${kpis.conversionRate}%`,
       delta: '+3%', deltaUp: true,
-      icon: TrendingUp, color: '#f97316', // orange
+      icon: TrendingUp, color: '#f97316',
     },
     {
       label: 'SLA Operação',
       value: loading ? '—' : `${kpis.slaPercent}%`,
       delta: '+5%', deltaUp: true,
-      icon: Zap, color: '#10b981',        // green
+      icon: Zap, color: '#10b981',
     },
   ]
 

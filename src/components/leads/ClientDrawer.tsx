@@ -13,6 +13,7 @@ interface Props {
 
 export function ClientDrawer({ lead, onClose }: Props) {
   const [isExpanded, setIsExpanded] = useState(true)
+  const [chatDraft, setChatDraft] = useState('')
 
   return (
     <>
@@ -86,12 +87,12 @@ export function ClientDrawer({ lead, onClose }: Props) {
             <>
               {/* Coluna 1: Playbook (25%) */}
               <div className="w-[320px] flex-shrink-0 h-full border-r border-white/5">
-                 <SDRPlaybook lead={lead} />
+                 <SDRPlaybook lead={lead} onUseInChat={setChatDraft} />
               </div>
 
               {/* Coluna 2: Omnichannel Chat (45%) */}
               <div className="flex-1 h-full bg-black/10">
-                 <SDRChat lead={lead} />
+                 <SDRChat lead={lead} draft={chatDraft} onDraftChange={setChatDraft} />
               </div>
 
               {/* Coluna 3: CRM Data (30%) */}

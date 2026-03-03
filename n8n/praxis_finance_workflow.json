@@ -1,0 +1,322 @@
+{
+  "name": "Praxis Finance — Asaas ↔ CRM (Final)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2d68fd4e-5c2a-4f2a-8d3f-5c2a5c2a5c2a",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "asaas-webhook",
+        "options": {
+          "responseMode": "responseNode"
+        }
+      },
+      "id": "a1b2c3d4-e5f6-4a5b-8c9d-d1e2f3a4b5c6",
+      "name": "Webhook — Asaas Events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [440, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.event }}",
+              "operation": "contains",
+              "value2": "PAYMENT_"
+            }
+          ]
+        }
+      },
+      "id": "b2c3d4e5-f6a7-4b6c-9d0e-e1f2a3b4c5d6",
+      "name": "Filtrar Eventos de Pagamento",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [660, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/rpc/handle_asaas_webhook",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "asaas_event",      "value": "={{ $json.event }}" },
+            { "name": "asaas_payment_id", "value": "={{ $json.payment.id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-a7b8-4c7d-0e1f-f1a2b3c4d5e6",
+      "name": "Atualizar Status no Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.event }}",
+              "operation": "equal",
+              "value2": "PAYMENT_OVERDUE"
+            }
+          ]
+        }
+      },
+      "id": "d4e5f6a7-b8c9-4d8e-1f2g-a1b2c3d4e5f6",
+      "name": "É OVERDUE?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/financial_payments?asaas_id=eq.{{ $('Webhook — Asaas Events').item.json.payment.id }}&select=client_name,description,value,due_date",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-c9d0-4e9f-2g3h-b2c3d4e5f6a7",
+      "name": "Buscar Dados do Cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 60]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { phone: \"5547984840488\", data: $input.item.json } },\n  { json: { phone: \"5547996358304\", data: $input.item.json } }\n];"
+      },
+      "id": "f6a7b8c9-d0e1-4f0g-3h4i-c3d4e5f6a7b8",
+      "name": "Lista de Administradores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 60]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nuvai-evolution-api.xyulh3.easypanel.host/message/sendText/Gustavo_Comercial",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "=⚠️ *Cobrança em atraso!*\n\nCliente: {{ $json.data.client_name }}\nDescrição: {{ $json.data.description }}\nValor: R$ {{ $json.data.value }}\nVencimento: {{ $json.data.due_date }}\n\nAcesse o CRM para detalhes."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7b8c9d0-e1f2-4g1h-4i5j-d4e5f6a7b8c9",
+      "name": "Notificar WhatsApp (Overdue)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1720, 60],
+      "notes": "Integrado com Evolution API (Gustavo_Comercial)."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }"
+      },
+      "id": "b8c9d0e1-f2a3-4h2i-5j6k-e5f6a7b8c9d0",
+      "name": "Resposta Webhook (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "c9d0e1f2-a3b4-4i3j-6k7l-f6a7b8c9d0e1",
+      "name": "Cron Diário — 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [440, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://xmfdrtrwpymgkvaeeyyq.supabase.co/functions/v1/asaas-integration",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "sync_payments"
+            },
+            {
+              "name": "payload",
+              "value": "={ \"statuses\": [\"PENDING\", \"OVERDUE\"], \"limit\": 100 }"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d0e1f2a3-b4c5-4j4k-7l8m-a7b8c9d0e1f2",
+      "name": "Sync Pagamentos Asaas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/financial_payments?status=in.(PENDING,OVERDUE)&select=asaas_id,status,client_name,due_date",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e1f2a3b4-c5d6-4k5l-8m9n-b8c9d0e1f2a3",
+      "name": "Buscar Pendentes no CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [880, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const asaasPayments = $(\"Sync Pagamentos Asaas\").item.json.payments ?? [];\nconst crmPayments   = $(\"Buscar Pendentes no CRM\").all().map(i => i.json);\n\nconst asaasMap = {};\nfor (const p of asaasPayments) {\n  asaasMap[p.id] = p.status;\n}\n\nconst divergentes = [];\nfor (const crm of crmPayments) {\n  const asaasStatus = asaasMap[crm.asaas_id];\n  if (asaasStatus && asaasStatus !== crm.status) {\n    divergentes.push({\n      asaas_id:    crm.asaas_id,\n      crm_status:  crm.status,\n      asaas_status: asaasStatus,\n      client_name:  crm.client_name,\n      due_date:     crm.due_date,\n    });\n  }\n}\n\nreturn divergentes.map(d => ({ json: d }));"
+      },
+      "id": "f2a3b4c5-d6e7-4l6m-9n0o-c9d0e1f2a3b4",
+      "name": "Detectar Divergências",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/rpc/handle_asaas_webhook",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "asaas_event",      "value": "=PAYMENT_{{ $json.asaas_status }}" },
+            { "name": "asaas_payment_id", "value": "={{ $json.asaas_id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3b4c5d6-e7f8-4m7n-0o1p-d0e1f2a3b4c5",
+      "name": "Reconciliar Status no CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1320, 500]
+    }
+  ],
+  "connections": {
+    "Webhook — Asaas Events": {
+      "main": [[{ "node": "Filtrar Eventos de Pagamento", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Eventos de Pagamento": {
+      "main": [
+        [{ "node": "Atualizar Status no Supabase", "type": "main", "index": 0 }],
+        [{ "node": "Resposta Webhook (200 OK)",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Atualizar Status no Supabase": {
+      "main": [[{ "node": "É OVERDUE?", "type": "main", "index": 0 }]]
+    },
+    "É OVERDUE?": {
+      "main": [
+        [{ "node": "Buscar Dados do Cliente",        "type": "main", "index": 0 }],
+        [{ "node": "Resposta Webhook (200 OK)",       "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Dados do Cliente": {
+      "main": [[{ "node": "Lista de Administradores", "type": "main", "index": 0 }]]
+    },
+    "Lista de Administradores": {
+      "main": [[{ "node": "Notificar WhatsApp (Overdue)", "type": "main", "index": 0 }]]
+    },
+    "Notificar WhatsApp (Overdue)": {
+      "main": [[{ "node": "Resposta Webhook (200 OK)", "type": "main", "index": 0 }]]
+    },
+    "Cron Diário — 08:00": {
+      "main": [[{ "node": "Sync Pagamentos Asaas", "type": "main", "index": 0 }]]
+    },
+    "Sync Pagamentos Asaas": {
+      "main": [[{ "node": "Buscar Pendentes no CRM", "type": "main", "index": 0 }]]
+    },
+    "Buscar Pendentes no CRM": {
+      "main": [[{ "node": "Detectar Divergências", "type": "main", "index": 0 }]]
+    },
+    "Detectar Divergências": {
+      "main": [[{ "node": "Reconciliar Status no CRM", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "praxis-finance-instance"
+  },
+  "pinData": {},
+  "tags": ["financeiro", "asaas", "crm", "praxis"]
+}

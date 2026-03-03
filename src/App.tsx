@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
+import { NexusLayout } from './components/layout/NexusLayout'
 import { DashboardPage as Dashboard } from './pages/Dashboard'
 import { LeadsPage } from './pages/Leads'
 import { PipelinePage as Pipeline } from './pages/Pipeline'
@@ -7,6 +8,7 @@ import { ClientDetail } from './pages/ClientDetail'
 import { OperationsPage as Operations } from './pages/Operations'
 import { FinancialPage } from './pages/Financial'
 import { PortalNexusPage } from './pages/PortalNexus'
+import { NexusPortal } from './pages/NexusPortal'
 import { Settings } from './pages/Settings'
 import { PlaceholderPage } from './pages/Placeholder'
 import { SettingsProvider } from './contexts/SettingsContext'
@@ -49,6 +51,11 @@ export default function App() {
                 />
               }
             />
+          </Route>
+
+          {/* Portal Nexus público — acesso via link único do cliente */}
+          <Route path="portal/:client_id" element={<NexusLayout />}>
+            <Route index element={<NexusPortal />} />
           </Route>
         </Routes>
       </BrowserRouter>
