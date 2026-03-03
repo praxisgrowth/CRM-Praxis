@@ -36,6 +36,7 @@ export interface Client {
   health_score: number
   trend: Trend
   avatar: string
+  asaas_id: string | null
   created_at: string
   updated_at: string
 }
@@ -53,6 +54,70 @@ export interface KPIMetric {
   key: string   // 'conversion_rate' | 'sla_percent'
   value: number
   updated_at: string
+}
+
+// ─── Agency Settings ──────────────────────────────────────────
+export interface AgencySettingsRow {
+  id: string
+  user_name: string
+  user_email: string
+  user_role: string
+  user_phone: string
+  agency_name: string
+  logo_url: string | null
+}
+
+// ─── Lead Activities ───────────────────────────────────────────
+export type ActivityType = 'criacao' | 'nota' | 'stage_change' | 'contato' | 'email'
+
+export interface LeadActivity {
+  id: string
+  lead_id: string
+  type: ActivityType
+  description: string
+  metadata: Record<string, unknown> | null
+  created_by: string
+  created_at: string
+}
+
+// ─── Asaas / Financial Payments ───────────────────────────────
+export type AsaasPaymentStatus = 'PENDING' | 'CONFIRMED' | 'RECEIVED' | 'OVERDUE' | 'REFUNDED' | 'CANCELLED'
+export type AsaasBillingType   = 'PIX' | 'BOLETO' | 'CREDIT_CARD'
+export type AsaasInvoiceType   = 'ONE_OFF' | 'RECURRING'
+
+export interface FinancialPayment {
+  id:                string
+  client_id:         string | null
+  client_name:       string | null
+  asaas_id:          string | null
+  asaas_customer_id: string | null
+  description:       string
+  value:             number
+  type:              AsaasInvoiceType
+  status:            AsaasPaymentStatus
+  due_date:          string | null
+  payment_link:      string | null
+  billing_type:      AsaasBillingType
+  created_at:        string
+  updated_at:        string
+}
+
+export type SubscriptionCycle  = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'BIMONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY'
+export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
+
+export interface FinancialSubscription {
+  id:                string
+  client_id:         string | null
+  client_name:       string | null
+  asaas_id:          string | null
+  description:       string
+  value:             number
+  cycle:             SubscriptionCycle
+  status:            SubscriptionStatus
+  billing_type:      AsaasBillingType
+  next_due_date:     string | null
+  created_at:        string
+  updated_at:        string
 }
 
 export type TransactionStatus = 'pago' | 'pendente' | 'atrasado'
@@ -148,10 +213,20 @@ export interface TeamMember {
 export interface Database {
   public: {
     Tables: {
+      agency_settings: {
+        Row: AgencySettingsRow
+        Insert: Omit<AgencySettingsRow, 'id'>
+        Update: Partial<Omit<AgencySettingsRow, 'id'>>
+      }
       leads: {
         Row: Lead
         Insert: Omit<Lead, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Lead, 'id' | 'created_at'>>
+      }
+      lead_activities: {
+        Row: LeadActivity
+        Insert: Omit<LeadActivity, 'id' | 'created_at'>
+        Update: Partial<Omit<LeadActivity, 'id' | 'created_at'>>
       }
       clients: {
         Row: Client
@@ -187,6 +262,16 @@ export interface Database {
         Row: FinancialTransaction
         Insert: Omit<FinancialTransaction, 'id' | 'created_at'>
         Update: Partial<Omit<FinancialTransaction, 'id' | 'created_at'>>
+      }
+      financial_payments: {
+        Row: FinancialPayment
+        Insert: Omit<FinancialPayment, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<FinancialPayment, 'id' | 'created_at'>>
+      }
+      financial_subscriptions: {
+        Row: FinancialSubscription
+        Insert: Omit<FinancialSubscription, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<FinancialSubscription, 'id' | 'created_at'>>
       }
       nexus_files: {
         Row: NexusFile
