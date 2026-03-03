@@ -7,10 +7,13 @@ import {
   TrendingUp, TrendingDown, Minus,
   DollarSign, Percent, Wallet, BarChart2,
   AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight,
+  Plus, Clock,
 } from 'lucide-react'
 import { useFinancial } from '../hooks/useFinancial'
 import type { FinancialKPIs, UseFinancialResult } from '../hooks/useFinancial'
-import type { FinancialTransaction, TransactionStatus } from '../lib/database.types'
+import type { FinancialTransaction, TransactionStatus, FinancialPayment } from '../lib/database.types'
+import { BillingDrawer } from '../components/financial/BillingDrawer'
+import { Toast } from '../components/financial/Toast'
 
 /* ─── Config ─────────────────────────────────────── */
 type TxFilter = TransactionStatus | 'todos'
@@ -211,8 +214,8 @@ function MRRChurnChart({ data, loading }: { data: UseFinancialResult['mrrHistory
 
 /* ─── Transaction row ────────────────────────────── */
 function TxRow({ tx }: { tx: FinancialTransaction }) {
-  const st      = STATUS_CFG[tx.status]
-  const isRec   = tx.type === 'receita'
+  const st       = STATUS_CFG[tx.status]
+  const isRec    = tx.type === 'receita'
   const amtColor = isRec ? '#10b981' : '#ef4444'
 
   return (
@@ -290,6 +293,92 @@ function TxRow({ tx }: { tx: FinancialTransaction }) {
   )
 }
 
+/* ─── Payment row (financial_payments) ──────────── */
+const PAYMENT_STATUS_CFG: Record<string, { label: string; color: string }> = {
+  PENDING:   { label: 'Pendente',   color: '#f59e0b' },
+  CONFIRMED: { label: 'Confirmado', color: '#10b981' },
+  RECEIVED:  { label: 'Recebido',   color: '#10b981' },
+  OVERDUE:   { label: 'Atrasado',   color: '#ef4444' },
+  REFUNDED:  { label: 'Estornado',  color: '#8b5cf6' },
+  CANCELLED: { label: 'Cancelado',  color: '#64748b' },
+}
+
+function PaymentRow({ payment }: { payment: FinancialPayment }) {
+  const st = PAYMENT_STATUS_CFG[payment.status] ?? { label: payment.status, color: '#64748b' }
+
+  return (
+    <tr
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {/* Descrição */}
+      <td className="px-4 py-3">
+        <span className="text-sm text-white font-medium">{payment.description}</span>
+      </td>
+
+      {/* Cliente */}
+      <td className="px-4 py-3">
+        <span className="text-xs text-slate-400">{payment.client_name ?? '—'}</span>
+      </td>
+
+      {/* Tipo */}
+      <td className="px-4 py-3">
+        <span
+          className="inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-semibold"
+          style={{
+            background: 'rgba(0,210,255,0.1)',
+            color: '#00d2ff',
+            border: '1px solid rgba(0,210,255,0.25)',
+          }}
+        >
+          {payment.type === 'ONE_OFF' ? 'Única' : 'Recorrente'}
+        </span>
+      </td>
+
+      {/* Valor */}
+      <td className="px-4 py-3 tabular-nums">
+        <span className="text-sm font-semibold text-emerald-400">
+          {payment.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+        </span>
+      </td>
+
+      {/* Status */}
+      <td className="px-4 py-3">
+        <span
+          className="inline-block px-2.5 py-1 rounded-lg text-[11px] font-semibold"
+          style={{
+            background: `${st.color}18`,
+            color: st.color,
+            border: `1px solid ${st.color}40`,
+          }}
+        >
+          {st.label}
+        </span>
+      </td>
+
+      {/* Pendente Asaas / Data */}
+      <td className="px-4 py-3">
+        {payment.asaas_id === null ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold"
+            style={{
+              background: 'rgba(245,158,11,0.1)',
+              color: '#f59e0b',
+              border: '1px solid rgba(245,158,11,0.3)',
+            }}
+          >
+            <Clock size={10} />
+            Pendente Asaas
+          </span>
+        ) : (
+          <span className="text-xs text-slate-500">{fmtDate(payment.created_at)}</span>
+        )}
+      </td>
+    </tr>
+  )
+}
+
 /* ─── Skeleton rows ──────────────────────────────── */
 function SkeletonTxRow() {
   return (
@@ -306,10 +395,13 @@ function SkeletonTxRow() {
   )
 }
 
+
 /* ─── Page ───────────────────────────────────────── */
 export function FinancialPage() {
-  const { kpis, mrrHistory, transactions, loading, error, refetch } = useFinancial()
-  const [txFilter, setTxFilter] = useState<TxFilter>('todos')
+  const { kpis, mrrHistory, transactions, payments, loading, error, refetch } = useFinancial()
+  const [txFilter,     setTxFilter]     = useState<TxFilter>('todos')
+  const [drawerOpen,   setDrawerOpen]   = useState(false)
+  const [toast,        setToast]        = useState<{ message: string } | null>(null)
 
   /* Filtered transactions */
   const filteredTxs = useMemo(() =>
@@ -343,10 +435,21 @@ export function FinancialPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Fev / 2025
           </div>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white transition-all"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0,210,255,0.2) 0%, rgba(157,80,187,0.2) 100%)',
+              border: '1px solid rgba(0,210,255,0.3)',
+            }}
+          >
+            <Plus size={13} />
+            Nova Cobrança
+          </button>
         </div>
       </div>
 
-      {/* Error banner */}
+      {/* Error banner — DB */}
       {error && (
         <div
           className="flex items-center justify-between px-4 py-3 rounded-xl text-sm flex-shrink-0"
@@ -394,6 +497,36 @@ export function FinancialPage() {
         </div>
         <MRRChurnChart data={mrrHistory} loading={loading} />
       </div>
+
+      {/* Cobranças Recentes */}
+      {payments.length > 0 && (
+        <div className="glass rounded-2xl overflow-hidden flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <p className="text-sm font-semibold text-white">Cobranças Recentes</p>
+            <span className="text-xs text-slate-500">{payments.length} cobrança{payments.length !== 1 ? 's' : ''}</span>
+          </div>
+          <table className="w-full text-sm border-collapse">
+            <thead style={{ background: 'rgba(13,20,34,0.96)' }}>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                {['Descrição', 'Cliente', 'Tipo', 'Valor', 'Status', 'Asaas'].map(h => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: '#475569' }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map(p => <PaymentRow key={p.id} payment={p} />)}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Transactions */}
       <div className="flex flex-col flex-1 gap-3" style={{ minHeight: 0 }}>
@@ -464,7 +597,9 @@ export function FinancialPage() {
                       </td>
                     </tr>
                   )
-                  : filteredTxs.map(tx => <TxRow key={tx.id} tx={tx} />)
+                  : filteredTxs.map(tx => (
+                    <TxRow key={tx.id} tx={tx} />
+                  ))
               }
             </tbody>
           </table>
@@ -477,6 +612,19 @@ export function FinancialPage() {
           </p>
         )}
       </div>
+
+      <BillingDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSuccess={msg => { setToast({ message: msg }); refetch() }}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
 
     </div>
   )
