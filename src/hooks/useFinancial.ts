@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import type { FinancialTransaction, FinancialMRREntry } from '../lib/database.types'
+import type { FinancialTransaction, FinancialMRREntry, FinancialPayment } from '../lib/database.types'
 
 /* ─── Types ──────────────────────────────────────── */
 export interface FinancialKPIs {
@@ -16,6 +16,7 @@ export interface UseFinancialResult {
   kpis: FinancialKPIs
   mrrHistory: FinancialMRREntry[]
   transactions: FinancialTransaction[]
+  payments: FinancialPayment[]
   loading: boolean
   error: string | null
   refetch: () => void
@@ -60,36 +61,19 @@ function computeKPIs(
   return { mrrAtual, mrrDelta, churnRate, churnDelta, saldoCaixa, ltvMedio }
 }
 
-/* ─── Fallback ───────────────────────────────────── */
-const FALLBACK_MRR: FinancialMRREntry[] = [
-  { id: '1', month: 'Set/24', mrr: 42000, churn_rate: 1.2, recorded_at: '2024-09-01' },
-  { id: '2', month: 'Out/24', mrr: 45500, churn_rate: 0.8, recorded_at: '2024-10-01' },
-  { id: '3', month: 'Nov/24', mrr: 48200, churn_rate: 1.5, recorded_at: '2024-11-01' },
-  { id: '4', month: 'Dez/24', mrr: 51000, churn_rate: 0.5, recorded_at: '2024-12-01' },
-  { id: '5', month: 'Jan/25', mrr: 54800, churn_rate: 0.9, recorded_at: '2025-01-01' },
-  { id: '6', month: 'Fev/25', mrr: 58200, churn_rate: 1.1, recorded_at: '2025-02-01' },
-]
-
-const FALLBACK_TXS: FinancialTransaction[] = [
-  { id: '1',  description: 'Mensalidade TechVision',      amount: 18000, type: 'receita', category: 'Serviço',   status: 'pago',     date: '2025-02-03', client_id: null, created_at: '' },
-  { id: '2',  description: 'Mensalidade Bioforma',         amount: 16000, type: 'receita', category: 'Serviço',   status: 'pago',     date: '2025-02-05', client_id: null, created_at: '' },
-  { id: '3',  description: 'Mensalidade Nexus Corp',       amount: 14000, type: 'receita', category: 'Serviço',   status: 'pago',     date: '2025-02-07', client_id: null, created_at: '' },
-  { id: '4',  description: 'Mensalidade DataFlow',         amount: 22000, type: 'receita', category: 'Serviço',   status: 'pendente', date: '2025-02-10', client_id: null, created_at: '' },
-  { id: '5',  description: 'Mensalidade Retail Max',       amount:  9000, type: 'receita', category: 'Serviço',   status: 'atrasado', date: '2025-01-31', client_id: null, created_at: '' },
-  { id: '6',  description: 'Patrocínio Evento Marketing',  amount:  5000, type: 'receita', category: 'Outros',    status: 'pendente', date: '2025-02-18', client_id: null, created_at: '' },
-  { id: '7',  description: 'Aluguel do escritório',        amount:  3200, type: 'despesa', category: 'Estrutura', status: 'pago',     date: '2025-02-01', client_id: null, created_at: '' },
-  { id: '8',  description: 'Cloud Services AWS',           amount:   850, type: 'despesa', category: 'Software',  status: 'pago',     date: '2025-02-10', client_id: null, created_at: '' },
-  { id: '9',  description: 'Freelancer Design',            amount:  2500, type: 'despesa', category: 'Pessoal',   status: 'pago',     date: '2025-02-08', client_id: null, created_at: '' },
-  { id: '10', description: 'Ferramentas SaaS (pacote)',    amount:  1200, type: 'despesa', category: 'Software',  status: 'pendente', date: '2025-02-15', client_id: null, created_at: '' },
-]
-
-const FALLBACK_KPIS = computeKPIs(FALLBACK_MRR, FALLBACK_TXS, 5)
-
 /* ─── Hook ───────────────────────────────────────── */
 export function useFinancial(): UseFinancialResult {
-  const [kpis, setKpis]               = useState<FinancialKPIs>(FALLBACK_KPIS)
-  const [mrrHistory, setMrrHistory]   = useState<FinancialMRREntry[]>(FALLBACK_MRR)
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(FALLBACK_TXS)
+  const [kpis, setKpis]               = useState<FinancialKPIs>({
+    mrrAtual: 0,
+    mrrDelta: 0,
+    churnRate: 0,
+    churnDelta: 0,
+    saldoCaixa: 0,
+    ltvMedio: 0
+  })
+  const [mrrHistory, setMrrHistory]   = useState<FinancialMRREntry[]>([])
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
+  const [payments, setPayments]         = useState<FinancialPayment[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
   const [tick, setTick]               = useState(0)
@@ -101,16 +85,17 @@ export function useFinancial(): UseFinancialResult {
       setLoading(true)
       setError(null)
       try {
-        const [mrrRes, txRes, clientRes] = await Promise.all([
+        const [mrrRes, txRes, clientRes, paymentsRes] = await Promise.all([
           supabase.from('mrr_history').select('*').order('recorded_at', { ascending: true }),
           supabase.from('financial_transactions').select('*').order('date', { ascending: false }),
           supabase.from('clients').select('id', { count: 'exact', head: true }),
+          supabase.from('financial_payments').select('*').order('created_at', { ascending: false }).limit(20),
         ])
 
-        if (mrrRes.error)    throw mrrRes.error
-        if (txRes.error)     throw txRes.error
+        if (mrrRes.error)    console.error('Error fetching MRR history:', mrrRes.error)
+        if (txRes.error)     console.error('Error fetching transactions:', txRes.error)
 
-        // mrr_history pode ter coluna 'meta' (migration.sql) ou 'churn_rate' (financial schema)
+        // mrr_history mapping
         const mrrData: FinancialMRREntry[] = ((mrrRes.data as any[]) ?? []).map(r => ({
           id:          r.id,
           month:       fmtMonth(r.month),
@@ -120,20 +105,17 @@ export function useFinancial(): UseFinancialResult {
         }))
 
         const txData = (txRes.data ?? []) as FinancialTransaction[]
-        const nClients = clientRes.count ?? 5
+        const nClients = clientRes.count ?? 0
 
-        if (mrrData.length)  setMrrHistory(mrrData)
-        if (txData.length)   setTransactions(txData)
+        setMrrHistory(mrrData)
+        setTransactions(txData)
 
-        setKpis(computeKPIs(
-          mrrData.length ? mrrData : FALLBACK_MRR,
-          txData.length  ? txData  : FALLBACK_TXS,
-          nClients,
-        ))
+        setKpis(computeKPIs(mrrData, txData, nClients))
+        setPayments((paymentsRes.data ?? []) as FinancialPayment[])
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Erro ao carregar financeiro'
         setError(msg)
-        console.warn('[useFinancial] Usando dados fallback:', msg)
+        console.error('[useFinancial] Erro crítico:', msg)
       } finally {
         setLoading(false)
       }
@@ -141,5 +123,5 @@ export function useFinancial(): UseFinancialResult {
     load()
   }, [tick])
 
-  return { kpis, mrrHistory, transactions, loading, error, refetch }
+  return { kpis, mrrHistory, transactions, payments, loading, error, refetch }
 }
