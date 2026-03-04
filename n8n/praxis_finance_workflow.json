@@ -1181,6 +1181,210 @@
         880,
         1360
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.clients?.asaas_id ?? '' }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "aa000001-0000-0000-0000-000000000001",
+      "name": "Verificar Customer ID (Pay)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-1168, 1100],
+      "notes": "Se o cliente já tem asaas_id, cria cobrança direto. Se não tem, cria o cliente no Asaas primeiro."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.asaas.com/v3/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "name",        "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.clients.name }}" },
+            { "name": "email",       "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.clients.email }}" },
+            { "name": "mobilePhone", "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.clients.phone }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa000001-0000-0000-0000-000000000002",
+      "name": "Asaas — Criar Cliente (Pay Auto)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-1168, 1600],
+      "notes": "Cria o cliente no Asaas quando asaas_id está ausente. Retorna cus_xxx."
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/clients?id=eq.{{ $('Supabase — Listar Novos Pagamentos').item.json.client_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "asaas_id", "value": "={{ $('Asaas — Criar Cliente (Pay Auto)').item.json.id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa000001-0000-0000-0000-000000000003",
+      "name": "Supabase — Salvar Customer ID (Pay)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-960, 1600],
+      "notes": "Persiste o cus_xxx no Supabase para cobranças futuras não precisarem criar novamente."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.asaas.com/v3/payments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "customer",    "value": "={{ $('Asaas — Criar Cliente (Pay Auto)').item.json.id }}" },
+            { "name": "billingType", "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.billing_type || 'PIX' }}" },
+            { "name": "value",       "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.value }}" },
+            { "name": "dueDate",     "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.due_date }}" },
+            { "name": "description", "value": "={{ $('Supabase — Listar Novos Pagamentos').item.json.description }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa000001-0000-0000-0000-000000000004",
+      "name": "Asaas — Criar Cobrança (Novo Cliente)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-752, 1600],
+      "notes": "Cria cobrança usando o cus_xxx recém-criado."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.clients?.asaas_id ?? '' }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "aa000002-0000-0000-0000-000000000001",
+      "name": "Verificar Customer ID (Sub)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-1168, 1300],
+      "notes": "Mesmo check para assinaturas."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.asaas.com/v3/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "name",        "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.clients.name }}" },
+            { "name": "email",       "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.clients.email }}" },
+            { "name": "mobilePhone", "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.clients.phone }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa000002-0000-0000-0000-000000000002",
+      "name": "Asaas — Criar Cliente (Sub Auto)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-1168, 1800]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/clients?id=eq.{{ $('Supabase — Listar Novas Assinaturas').item.json.client_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "asaas_id", "value": "={{ $('Asaas — Criar Cliente (Sub Auto)').item.json.id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa000002-0000-0000-0000-000000000003",
+      "name": "Supabase — Salvar Customer ID (Sub)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-960, 1800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.asaas.com/v3/subscriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "customer",     "value": "={{ $('Asaas — Criar Cliente (Sub Auto)').item.json.id }}" },
+            { "name": "billingType",  "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.billing_type || 'PIX' }}" },
+            { "name": "value",        "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.value }}" },
+            { "name": "nextDueDate",  "value": "={{ $now.toFormat('yyyy-MM-dd') }}" },
+            { "name": "cycle",        "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.cycle }}" },
+            { "name": "description",  "value": "={{ $('Supabase — Listar Novas Assinaturas').item.json.description }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa000002-0000-0000-0000-000000000004",
+      "name": "Asaas — Criar Assinatura (Novo Cliente)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-752, 1800]
     }
   ],
   "pinData": {},
@@ -1428,7 +1632,58 @@
       "main": [
         [
           {
+            "node": "Verificar Customer ID (Pay)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Customer ID (Pay)": {
+      "main": [
+        [
+          {
             "node": "Asaas — Criar Cobrança (Out)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Asaas — Criar Cliente (Pay Auto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asaas — Criar Cliente (Pay Auto)": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Salvar Customer ID (Pay)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Salvar Customer ID (Pay)": {
+      "main": [
+        [
+          {
+            "node": "Asaas — Criar Cobrança (Novo Cliente)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asaas — Criar Cobrança (Novo Cliente)": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Atualizar Payment (Out)",
             "type": "main",
             "index": 0
           }
@@ -1450,7 +1705,58 @@
       "main": [
         [
           {
+            "node": "Verificar Customer ID (Sub)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Customer ID (Sub)": {
+      "main": [
+        [
+          {
             "node": "Asaas — Criar Assinatura (Out)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Asaas — Criar Cliente (Sub Auto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asaas — Criar Cliente (Sub Auto)": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Salvar Customer ID (Sub)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Salvar Customer ID (Sub)": {
+      "main": [
+        [
+          {
+            "node": "Asaas — Criar Assinatura (Novo Cliente)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asaas — Criar Assinatura (Novo Cliente)": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Atualizar Assinatura (Out)",
             "type": "main",
             "index": 0
           }
