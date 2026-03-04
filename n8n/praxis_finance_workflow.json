@@ -263,6 +263,253 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [1320, 500]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finance/cancel",
+        "options": { "responseMode": "responseNode" }
+      },
+      "id": "c1a2b3c4-d5e6-4f7a-8b9c-000000000101",
+      "name": "Webhook — Cancelar Cobrança",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [440, 760]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://sandbox.asaas.com/api/v3/payments/{{ $json.body.asaas_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "={{ $vars.ASAAS_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1a2b3c4-d5e6-4f7a-8b9c-000000000102",
+      "name": "Asaas — Cancelar Pagamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 760]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/financial_payments?asaas_id=eq.{{ $('Webhook — Cancelar Cobrança').item.json.body.asaas_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"status\": \"CANCELLED\" }",
+        "options": {}
+      },
+      "id": "c1a2b3c4-d5e6-4f7a-8b9c-000000000103",
+      "name": "Supabase — Atualizar CANCELLED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [880, 760]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"action\": \"cancelled\" }"
+      },
+      "id": "c1a2b3c4-d5e6-4f7a-8b9c-000000000104",
+      "name": "Resposta Cancelar (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 760]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finance/refund",
+        "options": { "responseMode": "responseNode" }
+      },
+      "id": "d2b3c4d5-e6f7-4a8b-9c0d-000000000201",
+      "name": "Webhook — Estornar Cobrança",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [440, 960]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sandbox.asaas.com/api/v3/payments/{{ $json.body.asaas_id }}/refund",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "={{ $vars.ASAAS_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2b3c4d5-e6f7-4a8b-9c0d-000000000202",
+      "name": "Asaas — Estornar Pagamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 960]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/financial_payments?asaas_id=eq.{{ $('Webhook — Estornar Cobrança').item.json.body.asaas_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"status\": \"REFUNDED\" }",
+        "options": {}
+      },
+      "id": "d2b3c4d5-e6f7-4a8b-9c0d-000000000203",
+      "name": "Supabase — Atualizar REFUNDED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [880, 960]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"action\": \"refunded\" }"
+      },
+      "id": "d2b3c4d5-e6f7-4a8b-9c0d-000000000204",
+      "name": "Resposta Estornar (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 960]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finance/postpone",
+        "options": { "responseMode": "responseNode" }
+      },
+      "id": "e3c4d5e6-f7a8-4b9c-0d1e-000000000301",
+      "name": "Webhook — Editar Vencimento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [440, 1160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sandbox.asaas.com/api/v3/payments/{{ $json.body.asaas_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "={{ $vars.ASAAS_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dueDate: $json.body.new_due_date }) }}",
+        "options": {}
+      },
+      "id": "e3c4d5e6-f7a8-4b9c-0d1e-000000000302",
+      "name": "Asaas — Editar Vencimento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1160]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/financial_payments?asaas_id=eq.{{ $('Webhook — Editar Vencimento').item.json.body.asaas_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ due_date: $('Webhook — Editar Vencimento').item.json.body.new_due_date }) }}",
+        "options": {}
+      },
+      "id": "e3c4d5e6-f7a8-4b9c-0d1e-000000000303",
+      "name": "Supabase — Atualizar due_date",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [880, 1160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"action\": \"postponed\" }"
+      },
+      "id": "e3c4d5e6-f7a8-4b9c-0d1e-000000000304",
+      "name": "Resposta Editar Vencimento (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 1160]
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "finance/resend",
+        "options": { "responseMode": "responseNode" }
+      },
+      "id": "f4d5e6f7-a8b9-4c0d-1e2f-000000000401",
+      "name": "Webhook — Reenviar Notificação",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [440, 1360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sandbox.asaas.com/api/v3/payments/{{ $json.body.asaas_id }}/resendPaymentNotification",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "={{ $vars.ASAAS_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f4d5e6f7-a8b9-4c0d-1e2f-000000000402",
+      "name": "Asaas — Reenviar Notificação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 1360]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"action\": \"notification_resent\" }"
+      },
+      "id": "f4d5e6f7-a8b9-4c0d-1e2f-000000000403",
+      "name": "Resposta Reenviar (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [880, 1360]
     }
   ],
   "connections": {
@@ -304,6 +551,39 @@
     },
     "Detectar Divergências": {
       "main": [[{ "node": "Reconciliar Status no CRM", "type": "main", "index": 0 }]]
+    },
+    "Webhook — Cancelar Cobrança": {
+      "main": [[{ "node": "Asaas — Cancelar Pagamento", "type": "main", "index": 0 }]]
+    },
+    "Asaas — Cancelar Pagamento": {
+      "main": [[{ "node": "Supabase — Atualizar CANCELLED", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Atualizar CANCELLED": {
+      "main": [[{ "node": "Resposta Cancelar (200 OK)", "type": "main", "index": 0 }]]
+    },
+    "Webhook — Estornar Cobrança": {
+      "main": [[{ "node": "Asaas — Estornar Pagamento", "type": "main", "index": 0 }]]
+    },
+    "Asaas — Estornar Pagamento": {
+      "main": [[{ "node": "Supabase — Atualizar REFUNDED", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Atualizar REFUNDED": {
+      "main": [[{ "node": "Resposta Estornar (200 OK)", "type": "main", "index": 0 }]]
+    },
+    "Webhook — Editar Vencimento": {
+      "main": [[{ "node": "Asaas — Editar Vencimento", "type": "main", "index": 0 }]]
+    },
+    "Asaas — Editar Vencimento": {
+      "main": [[{ "node": "Supabase — Atualizar due_date", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Atualizar due_date": {
+      "main": [[{ "node": "Resposta Editar Vencimento (200 OK)", "type": "main", "index": 0 }]]
+    },
+    "Webhook — Reenviar Notificação": {
+      "main": [[{ "node": "Asaas — Reenviar Notificação", "type": "main", "index": 0 }]]
+    },
+    "Asaas — Reenviar Notificação": {
+      "main": [[{ "node": "Resposta Reenviar (200 OK)", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
