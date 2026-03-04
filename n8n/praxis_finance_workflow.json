@@ -84,6 +84,7 @@
           ]
         },
         "sendBody": true,
+        "contentType": "json",
         "bodyParameters": {
           "parameters": [
             {
@@ -542,6 +543,7 @@
           ]
         },
         "sendBody": true,
+        "contentType": "json",
         "bodyParameters": {
           "parameters": [
             {
