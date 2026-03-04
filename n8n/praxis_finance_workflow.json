@@ -620,7 +620,7 @@
           "parameters": [
             {
               "name": "access_token",
-              "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]"
+              "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmQzMmJhZTc0LWFkODctNDAyMi1iM2MxLTRkNGVmOGI2NjRkNDo6JGFhY2hfNWMyMDMyYzUtOTA1ZS00ZmJlLWI0OWYtYTM5MjMwMjI5OTVk"
             }
           ]
         },
@@ -741,7 +741,7 @@
           "parameters": [
             {
               "name": "access_token",
-              "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]"
+              "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmQzMmJhZTc0LWFkODctNDAyMi1iM2MxLTRkNGVmOGI2NjRkNDo6JGFhY2hfNWMyMDMyYzUtOTA1ZS00ZmJlLWI0OWYtYTM5MjMwMjI5OTVk"
             }
           ]
         },
@@ -1207,7 +1207,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" },
+            { "name": "access_token", "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmQzMmJhZTc0LWFkODctNDAyMi1iM2MxLTRkNGVmOGI2NjRkNDo6JGFhY2hfNWMyMDMyYzUtOTA1ZS00ZmJlLWI0OWYtYTM5MjMwMjI5OTVk" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -1263,7 +1263,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" }
+            { "name": "access_token", "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmQzMmJhZTc0LWFkODctNDAyMi1iM2MxLTRkNGVmOGI2NjRkNDo6JGFhY2hfNWMyMDMyYzUtOTA1ZS00ZmJlLWI0OWYtYTM5MjMwMjI5OTVk" }
           ]
         },
         "sendBody": true,
@@ -1310,7 +1310,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" },
+            { "name": "access_token", "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmQzMmJhZTc0LWFkODctNDAyMi1iM2MxLTRkNGVmOGI2NjRkNDo6JGFhY2hfNWMyMDMyYzUtOTA1ZS00ZmJlLWI0OWYtYTM5MjMwMjI5OTVk" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -1364,7 +1364,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "access_token", "value": "[COLE_AQUI_SEU_TOKEN_ASAAS]" }
+            { "name": "access_token", "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmQzMmJhZTc0LWFkODctNDAyMi1iM2MxLTRkNGVmOGI2NjRkNDo6JGFhY2hfNWMyMDMyYzUtOTA1ZS00ZmJlLWI0OWYtYTM5MjMwMjI5OTVk" }
           ]
         },
         "sendBody": true,
