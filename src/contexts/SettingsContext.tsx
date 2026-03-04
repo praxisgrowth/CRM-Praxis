@@ -63,14 +63,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     try {
       if (settings.id) {
-        await supabase
+        await (supabase as any)
           .from('agency_settings')
           .update(updates)
           .eq('id', settings.id)
       } else {
         // First save: insert row without passing id (auto-generated)
         const { id: _id, ...defaultsWithoutId } = DEFAULTS
-        const { data } = await supabase
+        const { data } = await (supabase as any)
           .from('agency_settings')
           .insert({ ...defaultsWithoutId, ...updates })
           .select()

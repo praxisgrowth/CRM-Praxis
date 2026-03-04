@@ -51,7 +51,7 @@ export function NexusPortal() {
       setLoading(true)
 
       const [clientRes, filesRes] = await Promise.all([
-        supabase.from('clients').select('name').eq('id', client_id!).maybeSingle(),
+        (supabase as any).from('clients').select('name').eq('id', client_id!).maybeSingle(),
         supabase.from('nexus_files').select('*').eq('client_id', client_id!).order('created_at', { ascending: false }),
       ])
 
@@ -75,8 +75,8 @@ export function NexusPortal() {
     const newStatus: NexusFileStatus = activeAction.action === 'sugestao' ? 'duvida' : activeAction.action as NexusFileStatus
 
     await Promise.all([
-      supabase.from('nexus_files').update({ status: newStatus }).eq('id', activeAction.fileId),
-      supabase.from('nexus_approvals').insert({
+      (supabase as any).from('nexus_files').update({ status: newStatus }).eq('id', activeAction.fileId),
+      (supabase as any).from('nexus_approvals').insert({
         file_id:     activeAction.fileId,
         action:      activeAction.action,
         comment:     comment || null,

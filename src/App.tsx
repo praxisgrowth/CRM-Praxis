@@ -4,6 +4,7 @@ import { NexusLayout } from './components/layout/NexusLayout'
 import { DashboardPage as Dashboard } from './pages/Dashboard'
 import { LeadsPage } from './pages/Leads'
 import { PipelinePage as Pipeline } from './pages/Pipeline'
+import { ClientsPage as Clients } from './pages/Clients'
 import { ClientDetail } from './pages/ClientDetail'
 import { OperationsPage as Operations } from './pages/Operations'
 import { FinancialPage } from './pages/Financial'
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="comercial">
               <Route path="leads" element={<LeadsPage />} />
               <Route path="pipeline" element={<Pipeline />} />
+              <Route path="clientes" element={<Clients />} />
               <Route path="clientes/:id" element={<ClientDetail />} />
             </Route>
 

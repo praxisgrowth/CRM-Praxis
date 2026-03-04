@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import clsx from 'clsx'
 import { DealCard } from './DealCard'
-import type { PipelineDeal, PipelineStage } from '../../lib/database.types'
+import type { Lead, PipelineStage } from '../../lib/database.types'
 
 export interface ColumnConfig {
   id: PipelineStage
@@ -12,28 +12,29 @@ export interface ColumnConfig {
 
 interface Props {
   column: ColumnConfig
-  deals: PipelineDeal[]
+  leads: Lead[]
   onDelete: (id: string) => void
   activeDealId: string | null
   bulkMode?: boolean
   selectedIds?: Set<string>
   onToggleCard?: (id: string, checked: boolean) => void
   onToggleAll?: (ids: string[], selectAll: boolean) => void
+  onCardClick?: (lead: Lead) => void
 }
 
-function formatTotal(deals: PipelineDeal[]) {
-  const total = deals.reduce((s, d) => s + d.value, 0)
+function formatTotal(leads: Lead[]) {
+  const total = leads.reduce((s, l) => s + l.value, 0)
   if (total >= 1000) return `R$${(total / 1000).toFixed(0)}k`
   return `R$${total}`
 }
 
 export function KanbanColumn({
-  column, deals, onDelete, activeDealId,
-  bulkMode = false, selectedIds = new Set(), onToggleCard, onToggleAll,
+  column, leads, onDelete, activeDealId,
+  bulkMode = false, selectedIds = new Set(), onToggleCard, onToggleAll, onCardClick,
 }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
-  const columnIds    = deals.map(d => d.id)
+  const columnIds    = leads.map(l => l.id)
   const allSelected  = columnIds.length > 0 && columnIds.every(id => selectedIds.has(id))
   const someSelected = columnIds.some(id => selectedIds.has(id)) && !allSelected
 
@@ -52,7 +53,6 @@ export function KanbanColumn({
         }}
       >
         <div className="flex items-center gap-2">
-          {/* Bulk: select-all checkbox */}
           {bulkMode && (
             <button
               onClick={handleToggleAll}
@@ -87,11 +87,11 @@ export function KanbanColumn({
             className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
             style={{ background: `${column.color}25`, color: column.color }}
           >
-            {deals.length}
+            {leads.length}
           </span>
         </div>
         <span className="text-[10px] font-semibold" style={{ color: column.color }}>
-          {formatTotal(deals)}
+          {formatTotal(leads)}
         </span>
       </div>
 
@@ -109,19 +109,20 @@ export function KanbanColumn({
           outlineColor: isOver ? `${column.color}50` : undefined,
         }}
       >
-        {deals.map(deal => (
+        {leads.map(lead => (
           <DealCard
-            key={deal.id}
-            deal={deal}
+            key={lead.id}
+            deal={lead}
+            onClick={onCardClick}
             onDelete={onDelete}
-            isDragOverlay={deal.id === activeDealId}
+            isDragOverlay={lead.id === activeDealId}
             bulkMode={bulkMode}
-            checked={selectedIds.has(deal.id)}
+            checked={selectedIds.has(lead.id)}
             onCheck={onToggleCard}
           />
         ))}
 
-        {deals.length === 0 && (
+        {leads.length === 0 && (
           <div className="flex-1 flex items-center justify-center min-h-[80px]">
             <p
               className="text-[11px] text-center px-4 py-6 rounded-xl w-full"

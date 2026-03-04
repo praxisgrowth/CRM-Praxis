@@ -4,12 +4,12 @@ import type { Lead } from '../../lib/database.types'
 import type { NewLeadInput } from '../../hooks/useLeads'
 
 /* ─── Config ─────────────────────────────────────── */
-const STAGES: { value: Lead['stage']; label: string; color: string }[] = [
-  { value: 'novo',        label: 'Novo',        color: '#6366f1' },
-  { value: 'qualificado', label: 'Qualificado',  color: '#8b5cf6' },
-  { value: 'proposta',    label: 'Proposta',     color: '#f59e0b' },
-  { value: 'negociacao',  label: 'Negociação',   color: '#10b981' },
-  { value: 'fechado',     label: 'Fechado',      color: '#64748b' },
+const STAGES: { value: Lead['stage']; label: string }[] = [
+  { value: 'prospeccao', label: 'Prospecção' },
+  { value: 'reuniao',    label: 'Reunião'    },
+  { value: 'proposta',   label: 'Proposta'   },
+  { value: 'negociacao', label: 'Negociação' },
+  { value: 'fechado',    label: 'Fechado'    },
 ]
 
 const SOURCES = ['LinkedIn', 'Indicação', 'Evento', 'Site', 'Outbound', 'Cold Email', 'Outros']
@@ -36,7 +36,7 @@ interface Props {
 export function NewLeadModal({ onClose, onSave }: Props) {
   const [form, setForm] = useState<NewLeadInput>({
     name: '', email: null, phone: null,
-    stage: 'novo', score: 50, source: null,
+    stage: 'prospeccao', score: 50, source: null,
   })
   const [saving, setSaving]   = useState(false)
   const [err, setErr]         = useState('')
@@ -149,22 +149,20 @@ export function NewLeadModal({ onClose, onSave }: Props) {
           </div>
 
           <Field label="Estágio inicial">
-            <div className="grid grid-cols-3 gap-1.5">
+            <select
+              className={FIELD}
+              style={s('stage')}
+              value={form.stage}
+              onChange={e => set('stage', e.target.value as Lead['stage'])}
+              onFocus={() => setFocus('stage')}
+              onBlur={() => setFocus('')}
+            >
               {STAGES.map(st => (
-                <button
-                  key={st.value} type="button"
-                  onClick={() => set('stage', st.value)}
-                  className="px-2 py-2 rounded-lg text-[11px] font-medium transition-all duration-150"
-                  style={
-                    form.stage === st.value
-                      ? { background: `${st.color}22`, border: `1px solid ${st.color}66`, color: st.color }
-                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#64748b' }
-                  }
-                >
+                <option key={st.value} value={st.value} style={{ background: '#0d1422' }}>
                   {st.label}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </Field>
 
           {err && <p className="text-xs text-red-400 px-1">{err}</p>}

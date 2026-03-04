@@ -7,7 +7,7 @@ import { createPayment, createSubscription } from '../../hooks/useBilling'
 import type { AsaasBillingType, SubscriptionCycle } from '../../lib/database.types'
 
 /* ─── Types ──────────────────────────────────────── */
-interface ClientOption { id: string; name: string }
+interface ClientOption { id: string; name: string; asaas_id: string | null }
 type Tab = 'unica' | 'assinatura'
 
 interface BillingDrawerProps {
@@ -75,7 +75,7 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
     if (!open) return
     supabase
       .from('clients')
-      .select('id, name')
+      .select('id, name, asaas_id')
       .order('name')
       .then(({ data }) => { if (data) setClients(data as ClientOption[]) })
   }, [open])
@@ -265,6 +265,19 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
                 </div>
               )}
             </div>
+
+            {selectedClient && !selectedClient.asaas_id && (
+              <div
+                className="flex items-start gap-2 px-3 py-2 rounded-lg -mt-2"
+                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}
+              >
+                <span className="text-amber-400 text-xs leading-snug">
+                  ⚠ <strong>Sem Asaas ID</strong> — este cliente ainda não tem cadastro no Asaas.
+                  A cobrança será salva e processada automaticamente pelo n8n quando o cliente
+                  for sincronizado.
+                </span>
+              </div>
+            )}
 
             {/* Valor */}
             <div>

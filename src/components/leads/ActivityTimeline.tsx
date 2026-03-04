@@ -70,7 +70,7 @@ function ActivityItem({ activity, isLast }: { activity: LeadActivity; isLast: bo
           <p className="text-[11px] text-slate-300 leading-relaxed">{activity.description}</p>
 
           {/* Metadado de mudança de estágio */}
-          {activity.type === 'stage_change' && activity.metadata?.old_stage && (
+          {activity.type === 'stage_change' && !!activity.metadata?.old_stage && (
             <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold">
               <span className="text-slate-500">{String(activity.metadata.old_stage)}</span>
               <span className="text-slate-700">→</span>

@@ -1,7 +1,6 @@
-import { 
-  Building2, 
-  Calendar, 
-  Clock, 
+import {
+  Building2,
+  Clock,
   GripVertical,
   MessageSquare,
   Phone,
@@ -11,11 +10,11 @@ import {
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
-import type { PipelineDeal, Priority } from '../../lib/database.types'
+import type { Lead, Priority } from '../../lib/database.types'
 
 interface Props {
-  deal: PipelineDeal
-  onClick?: (deal: PipelineDeal) => void
+  deal: Lead
+  onClick?: (deal: Lead) => void
   onDelete?: (id: string) => void
   isDragOverlay?: boolean
   bulkMode?: boolean
@@ -45,14 +44,14 @@ function timeInStage(updatedAt: string): { label: string; color: string; isCold:
   return               { label: 'agora',               color: '#6366f1', isCold: false }
 }
 
-export function DealCard({ 
-  deal, 
-  onClick, 
-  onDelete, 
-  isDragOverlay = false, 
-  bulkMode = false, 
-  checked = false, 
-  onCheck 
+export function DealCard({
+  deal,
+  onClick,
+  onDelete: _onDelete,
+  isDragOverlay = false,
+  bulkMode = false,
+  checked = false,
+  onCheck
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: deal.id,
@@ -64,20 +63,26 @@ export function DealCard({
     transform: CSS.Translate.toString(transform),
   }
 
-  const p = PRIORITY_STYLES[deal.priority]
-  const timing = timeInStage(deal.updated_at)
+  const priority = deal.priority ?? 'media'
+  const p        = PRIORITY_STYLES[priority]
+  const timing   = timeInStage(deal.updated_at)
 
-  // Mocks para os novos badges do Roadmap 2.0 (Serão conectados a campos reais do banco futuramente)
-  // Por enquanto, usamos a lógica de tempo e prioridade para simular
-  const hasPendingWhatsApp = deal.priority === 'alta' && !isDragOverlay
-  const hasPendingCall = timing.label.includes('d') && !isDragOverlay
-  const isColdLead = timing.isCold
+  const hasPendingWhatsApp = priority === 'alta' && !isDragOverlay
+  const hasPendingCall     = timing.label.includes('d') && !isDragOverlay
+  const isColdLead         = timing.isCold
+
+  // Title: use deal.title if set, otherwise fall back to name
+  const cardTitle   = deal.title ?? deal.name
+  const cardCompany = deal.company ?? deal.name
+  // Show contact row only when a title exists (avoids showing name twice)
+  const showContact = !!deal.title
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
+      {...(!bulkMode ? listeners : {})}
       className={clsx(
         "group relative bg-[#0d1422] rounded-2xl border transition-all duration-300 select-none",
         isDragging && !isDragOverlay ? "opacity-40" : "opacity-100",
@@ -86,9 +91,9 @@ export function DealCard({
         !bulkMode && "cursor-grab active:cursor-grabbing"
       )}
     >
-      <div 
+      <div
         className="p-4 space-y-3"
-        onClick={(e) => {
+        onClick={() => {
           if (bulkMode) {
             onCheck?.(deal.id, !checked)
           } else {
@@ -96,31 +101,29 @@ export function DealCard({
           }
         }}
       >
-        {/* Header: Priority & Controls */}
+        {/* Header: Priority & Grip */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {bulkMode && (
               <div className="mr-1" onClick={e => e.stopPropagation()}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={checked}
                   onChange={(e) => onCheck?.(deal.id, e.target.checked)}
                   className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500/20 transition-all cursor-pointer"
                 />
               </div>
             )}
-            <span 
+            <span
               className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
               style={{ background: `${p.color}15`, color: p.color, borderColor: `${p.color}30` }}
             >
               {p.label}
             </span>
           </div>
-          
-          <div 
-            {...(!bulkMode ? listeners : {})} 
-            className="text-slate-600 group-hover:text-slate-400 p-1 rounded-lg hover:bg-white/5 transition-all"
-          >
+
+          {/* Grip — visual affordance only; drag listeners are on outer div */}
+          <div className="text-slate-600 group-hover:text-slate-400 p-1 rounded-lg hover:bg-white/5 transition-all">
             <GripVertical size={14} />
           </div>
         </div>
@@ -128,16 +131,18 @@ export function DealCard({
         {/* Title & Company */}
         <div className="space-y-1">
           <h4 className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
-            {deal.title}
+            {cardTitle}
           </h4>
-          <div className="flex items-center gap-2 text-slate-500">
-            <Building2 size={12} className="flex-shrink-0" />
-            <span className="text-xs truncate">{deal.company}</span>
-          </div>
-          {deal.contact_name && (
+          {cardCompany !== cardTitle && (
+            <div className="flex items-center gap-2 text-slate-500">
+              <Building2 size={12} className="flex-shrink-0" />
+              <span className="text-xs truncate">{cardCompany}</span>
+            </div>
+          )}
+          {showContact && (
             <div className="flex items-center gap-2 text-slate-500">
               <User size={12} className="flex-shrink-0" />
-              <span className="text-xs truncate">{deal.contact_name}</span>
+              <span className="text-xs truncate">{deal.name}</span>
             </div>
           )}
         </div>
@@ -145,33 +150,33 @@ export function DealCard({
         {/* Footer */}
         <div className="pt-3 border-t border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="flex items-center gap-1.5 text-slate-400">
-                <span className="text-[10px] font-bold text-slate-300">
-                  {formatValue(deal.value)}
-                </span>
-             </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="text-[10px] font-bold text-slate-300">
+                {formatValue(deal.value)}
+              </span>
+            </div>
 
-             {/* Indicadores Visuais - Roadmap 2.0 */}
-             <div className="flex items-center gap-2 ml-1 border-l border-white/10 pl-3">
-                {hasPendingWhatsApp && (
-                  <div title="WhatsApp Pendente" className="text-emerald-500 filter drop-shadow-[0_0_4px_rgba(16,185,129,0.3)]">
-                    <MessageSquare size={12} strokeWidth={3} />
-                  </div>
-                )}
-                {hasPendingCall && (
-                  <div title="Ligação Pendente" className="text-blue-400 filter drop-shadow-[0_0_4px_rgba(59,130,246,0.3)]">
-                    <Phone size={12} strokeWidth={3} />
-                  </div>
-                )}
-                {isColdLead && (
-                  <div title="SLA Crítico (Lead Frio)" className="text-red-500 filter drop-shadow-[0_0_4px_rgba(239,68,68,0.3)] animate-pulse">
-                    <AlertCircle size={12} strokeWidth={3} />
-                  </div>
-                )}
-             </div>
+            {/* Indicadores Visuais */}
+            <div className="flex items-center gap-2 ml-1 border-l border-white/10 pl-3">
+              {hasPendingWhatsApp && (
+                <div title="WhatsApp Pendente" className="text-emerald-500 filter drop-shadow-[0_0_4px_rgba(16,185,129,0.3)]">
+                  <MessageSquare size={12} strokeWidth={3} />
+                </div>
+              )}
+              {hasPendingCall && (
+                <div title="Ligação Pendente" className="text-blue-400 filter drop-shadow-[0_0_4px_rgba(59,130,246,0.3)]">
+                  <Phone size={12} strokeWidth={3} />
+                </div>
+              )}
+              {isColdLead && (
+                <div title="SLA Crítico (Lead Frio)" className="text-red-500 filter drop-shadow-[0_0_4px_rgba(239,68,68,0.3)] animate-pulse">
+                  <AlertCircle size={12} strokeWidth={3} />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div 
+          <div
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold border transition-colors"
             style={{ color: timing.color, background: `${timing.color}15`, borderColor: `${timing.color}30` }}
           >

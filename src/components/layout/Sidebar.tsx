@@ -31,17 +31,17 @@ const NAV_ITEMS: NavItem[] = [
     to: '/',
   },
   {
+    label: 'Clientes',
+    icon: Users,
+    to: '/comercial/clientes',
+  },
+  {
     label: 'Comercial',
     icon: Briefcase,
     children: [
       { label: 'Leads',    to: '/comercial/leads' },
       { label: 'Pipeline', to: '/comercial/pipeline' },
     ],
-  },
-  {
-    label: 'Clientes',
-    icon: Users,
-    to: '/comercial/clientes',
   },
   {
     label: 'Operação',

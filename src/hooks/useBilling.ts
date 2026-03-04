@@ -20,7 +20,7 @@ export interface CreateSubscriptionInput {
 }
 
 export async function createPayment(input: CreatePaymentInput): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('financial_payments')
     .insert({
       client_id:         input.client_id,

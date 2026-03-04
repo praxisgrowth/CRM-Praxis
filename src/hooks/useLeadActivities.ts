@@ -59,7 +59,7 @@ export function useLeadActivities(leadId: string): UseLeadActivitiesResult {
     }
     setActivities(prev => [optimistic, ...prev])
 
-    const { data, error: sbErr } = await supabase
+    const { data, error: sbErr } = await (supabase as any)
       .from('lead_activities')
       .insert({
         lead_id: leadId,
@@ -79,7 +79,7 @@ export function useLeadActivities(leadId: string): UseLeadActivitiesResult {
 
     // Substitui o ID temporário pelo UUID definitivo do Supabase
     setActivities(prev => prev.map(a => a.id === optimistic.id ? data : a))
-    console.info('[useLeadActivities] Atividade persistida:', data.id)
+    console.info('[useLeadActivities] Atividade persistida:', (data as any).id)
   }, [leadId])
 
   return { activities, loading, error, addActivity }

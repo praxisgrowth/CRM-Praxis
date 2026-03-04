@@ -1,10 +1,13 @@
-import { User, Mail, Phone, Globe, Briefcase, Target, Users, TrendingUp, Clock } from 'lucide-react'
+import { User, Mail, Phone, Globe, Briefcase, Target, Users, TrendingUp, Clock, UserPlus, Loader2, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import type { Lead } from '../../lib/database.types'
+import { supabase } from '../../lib/supabase'
 import { ActivityTimeline } from './ActivityTimeline'
+import { PIPELINE_STAGES } from '../../config/pipeline'
 
 interface Props {
-  lead: Lead
+  lead:         Lead
+  onConverted?: (clientId: string, clientName: string) => void
 }
 
 interface FieldProps {
@@ -27,10 +30,69 @@ function CRMField({ label, value, icon: Icon }: FieldProps) {
 
 const TEAM_SIZE_OPTIONS = ['1–5 pessoas', '6–20 pessoas', '21–50 pessoas', '51–200 pessoas', '200+ pessoas']
 
-export function SDRQualification({ lead }: Props) {
-  const [faturamento, setFaturamento] = useState('')
-  const [teamSize, setTeamSize] = useState('')
-  const [dores, setDores] = useState('')
+export function SDRQualification({ lead, onConverted }: Props) {
+  const [faturamento,   setFaturamento]   = useState(lead.faturamento   ?? '')
+  const [teamSize,      setTeamSize]      = useState(lead.team_size      ?? '')
+  const [dores,         setDores]         = useState(lead.dores          ?? '')
+  const [converting,    setConverting]    = useState(false)
+  const [icpSaving,     setIcpSaving]     = useState(false)
+  const [convertError,  setConvertError]  = useState<string | null>(null)
+  const [stageUpdating, setStageUpdating] = useState(false)
+
+  async function handleConvert() {
+    setConverting(true)
+    setConvertError(null)
+    try {
+      // 1. Criar cliente
+      const { data, error: insertErr } = await (supabase as any)
+        .from('clients')
+        .insert({
+          name:         lead.name,
+          email:        lead.email,
+          phone:        lead.phone,
+          mrr:          0,
+          health_score: 50,
+          trend:        'flat',
+          avatar:       lead.name.charAt(0).toUpperCase(),
+          asaas_id:     null,
+          segment:      null,
+        })
+        .select('id, name')
+        .single()
+      if (insertErr) throw new Error(insertErr.message)
+
+      // 2. Marcar lead como fechado
+      await (supabase as any)
+        .from('leads')
+        .update({ stage: 'fechado' })
+        .eq('id', lead.id)
+
+      // 3. Abrir modal de onboarding
+      onConverted?.(data.id, data.name)
+    } catch (err) {
+      setConvertError(err instanceof Error ? err.message : 'Erro ao converter.')
+    } finally {
+      setConverting(false)
+    }
+  }
+
+  async function saveICP(patch: { faturamento?: string | null; team_size?: string | null; dores?: string | null }) {
+    setIcpSaving(true)
+    await (supabase as any)
+      .from('leads')
+      .update(patch)
+      .eq('id', lead.id)
+    setIcpSaving(false)
+  }
+
+  async function handleStageChange(newStage: string) {
+    setStageUpdating(true)
+    await (supabase as any)
+      .from('leads')
+      .update({ stage: newStage })
+      .eq('id', lead.id)
+    setStageUpdating(false)
+  }
 
   return (
     <div className="flex flex-col h-full bg-white/[0.01] border-l border-white/5 overflow-hidden">
@@ -51,9 +113,35 @@ export function SDRQualification({ lead }: Props) {
           <CRMField label="Origem" value={lead.source} icon={Globe} />
         </section>
 
+        {/* Estágio do Lead */}
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <ChevronDown size={12} className="text-slate-500" />
+            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Estágio</span>
+          </div>
+          <div className="relative">
+            <select
+              defaultValue={lead.stage}
+              onChange={e => handleStageChange(e.target.value)}
+              disabled={stageUpdating}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500/50 transition-all appearance-none cursor-pointer disabled:opacity-60"
+            >
+              {PIPELINE_STAGES.map(s => (
+                <option key={s.id} value={s.id} className="bg-slate-900">{s.label}</option>
+              ))}
+            </select>
+            {stageUpdating && (
+              <Loader2 size={11} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-purple-400" />
+            )}
+          </div>
+        </div>
+
         {/* Diagnóstico editável */}
-        <div className="px-4 py-2 bg-purple-500/5 border-y border-purple-500/10 mb-2">
+        <div className="px-4 py-2 bg-purple-500/5 border-y border-purple-500/10 mb-2 flex items-center justify-between">
           <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Diagnóstico</p>
+          {icpSaving && (
+            <Loader2 size={10} className="animate-spin text-purple-400" />
+          )}
         </div>
 
         <section className="px-4 space-y-3 pb-4">
@@ -67,6 +155,7 @@ export function SDRQualification({ lead }: Props) {
               type="text"
               value={faturamento}
               onChange={e => setFaturamento(e.target.value)}
+              onBlur={e => saveICP({ faturamento: e.target.value.trim() || null })}
               placeholder="ex: R$ 80.000/mês"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-600"
             />
@@ -80,7 +169,7 @@ export function SDRQualification({ lead }: Props) {
             </div>
             <select
               value={teamSize}
-              onChange={e => setTeamSize(e.target.value)}
+              onChange={e => { setTeamSize(e.target.value); saveICP({ team_size: e.target.value || null }) }}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500/50 transition-all appearance-none cursor-pointer"
             >
               <option value="" className="bg-slate-900 text-slate-400">Selecionar...</option>
@@ -99,6 +188,7 @@ export function SDRQualification({ lead }: Props) {
             <textarea
               value={dores}
               onChange={e => setDores(e.target.value)}
+              onBlur={e => saveICP({ dores: e.target.value.trim() || null })}
               placeholder="Descreva os principais desafios do lead..."
               rows={3}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500/50 transition-all resize-none placeholder:text-slate-600"
@@ -120,17 +210,22 @@ export function SDRQualification({ lead }: Props) {
 
       {/* Action Button */}
       <div className="p-4 border-t border-white/5 space-y-2">
-        <button className="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-bold border border-purple-500/20 transition-all">
-          Atualizar Lead
-        </button>
+        {convertError && (
+          <p className="text-[11px] text-red-400 text-center pb-1">⚠ {convertError}</p>
+        )}
         <button
-          className="w-full py-2.5 rounded-xl text-[11px] font-bold text-white transition-all duration-200"
+          onClick={handleConvert}
+          disabled={converting || lead.stage === 'fechado'}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold text-white transition-all duration-200 disabled:opacity-50"
           style={{
             background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
+            boxShadow:  '0 4px 16px rgba(99,102,241,0.3)',
           }}
         >
-          Converter em Cliente
+          {converting
+            ? <><Loader2 size={12} className="animate-spin" /> Convertendo...</>
+            : <><UserPlus size={12} /> {lead.stage === 'fechado' ? 'Já convertido' : 'Converter em Cliente'}</>
+          }
         </button>
       </div>
     </div>

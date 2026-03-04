@@ -79,7 +79,7 @@ export function useOperations(): UseOperationsResult {
     }
     setProjects(prev => [optimistic, ...prev])
 
-    const { data, error: sbErr } = await supabase
+    const { data, error: sbErr } = await (supabase as any)
       .from('projects')
       .insert(input)
       .select()
@@ -93,9 +93,9 @@ export function useOperations(): UseOperationsResult {
 
     // Substitui o temporário pelo retorno real do Supabase (UUID definitivo, tasks vazio)
     setProjects(prev =>
-      prev.map(p => p.id === optimistic.id ? { ...data, tasks: [] } : p)
+      prev.map(p => p.id === optimistic.id ? { ...(data as Project), tasks: [] } : p)
     )
-    console.info('[useOperations] Projeto persistido com ID:', data.id)
+    console.info('[useOperations] Projeto persistido com ID:', (data as any).id)
   }, [])
 
   return { projects, loading, error, refetch, addProject }

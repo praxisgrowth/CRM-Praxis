@@ -1,193 +1,230 @@
 import { useParams, Link } from 'react-router-dom'
-import { 
-  ArrowLeft, 
-  Mail, 
-  Phone, 
-  Globe, 
-  Calendar, 
-  DollarSign, 
-  Zap,
+import { useEffect, useState } from 'react'
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  MapPin,
   TrendingUp,
   Clock,
-  ExternalLink
+  Loader2,
+  DollarSign,
+  User,
+  FileText,
 } from 'lucide-react'
-import { useLeads } from '../hooks/useLeads' // Reutilizando busca de clientes/leads
-import clsx from 'clsx'
+import { supabase } from '../lib/supabase'
+import type { Client } from '../lib/database.types'
+import { FinancialCard } from '../components/financial/FinancialCard'
+
+function fmtCurrency(v: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+}
+
+function healthColor(score: number) {
+  if (score >= 75) return '#10b981'
+  if (score >= 50) return '#f59e0b'
+  return '#ef4444'
+}
 
 export function ClientDetail() {
-  const { id } = useParams()
-  const { leads, loading } = useLeads()
-  
-  // No mundo real, buscaríamos o cliente específico pelo ID
-  const client = leads.find(l => l.id === id) || leads[0]
+  const { id } = useParams<{ id: string }>()
+  const [client,  setClient]  = useState<Client | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
 
-  if (loading) return <div className="p-8">Carregando detalhes...</div>
+  useEffect(() => {
+    if (!id) { setNotFound(true); setLoading(false); return }
 
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <Link 
-          to="/comercial/leads" 
+    async function load() {
+      setLoading(true)
+      const { data } = await (supabase as any)
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (!data) {
+        setNotFound(true)
+      } else {
+        setClient(data as Client)
+      }
+      setLoading(false)
+    }
+
+    load()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 size={28} className="text-indigo-400 animate-spin" />
+      </div>
+    )
+  }
+
+  if (notFound || !client) {
+    return (
+      <div className="space-y-4 animate-in fade-in duration-500">
+        <Link
+          to="/comercial/clientes"
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm w-fit"
         >
           <ArrowLeft size={16} /> Voltar para Clientes
         </Link>
-        
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-2xl glass flex items-center justify-center text-3xl font-bold text-blue-400 border-blue-500/20 shadow-glow">
-              {client.name.charAt(0)}
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <User size={32} className="text-slate-700 mb-3" />
+          <p className="text-sm font-semibold text-slate-400">Cliente não encontrado</p>
+          <p className="text-xs text-slate-600 mt-1">Verifique o ID e tente novamente.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const hColor = healthColor(client.health_score)
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* ── Back + Header ────────────────────────────── */}
+      <div className="flex flex-col gap-4">
+        <Link
+          to="/comercial/clientes"
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm w-fit"
+        >
+          <ArrowLeft size={16} /> Voltar para Clientes
+        </Link>
+
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-indigo-300 flex-shrink-0"
+              style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}
+            >
+              {client.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">{client.name}</h1>
-              <div className="flex items-center gap-3 mt-2">
-                <span className={clsx(
-                  "px-3 py-1 rounded-full text-xs font-medium border",
-                  client.stage === 'fechado' ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                )}>
-                  {client.stage === 'fechado' ? 'Cliente Ativo' : 'Lead Qualificado'}
-                </span>
-                <span className="text-slate-500 text-sm flex items-center gap-1">
-                  <Clock size={14} /> Desde {new Date(client.created_at).toLocaleDateString()}
+              <h1 className="text-2xl font-bold text-white leading-tight">{client.name}</h1>
+              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                {client.segment && (
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                    style={{ background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}
+                  >
+                    {client.segment}
+                  </span>
+                )}
+                <span className="text-xs text-slate-500 flex items-center gap-1">
+                  <Clock size={12} />
+                  Cliente desde {new Date(client.created_at).toLocaleDateString('pt-BR')}
                 </span>
               </div>
             </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <button className="px-4 py-2 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 transition-all">
-              Editar Dados
-            </button>
-            <button className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">
-              Nova Proposta
-            </button>
           </div>
         </div>
       </div>
 
+      {/* ── KPI Strip ────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
+        >
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+            <DollarSign size={10} /> MRR
+          </p>
+          <p className="text-lg font-bold text-white">{fmtCurrency(client.mrr)}</p>
+        </div>
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{ background: `${hColor}08`, border: `1px solid ${hColor}20` }}
+        >
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+            <TrendingUp size={10} /> Health Score
+          </p>
+          <p className="text-lg font-bold" style={{ color: hColor }}>{client.health_score}%</p>
+        </div>
+        {client.cpf_cnpj && (
+          <div
+            className="rounded-xl px-4 py-3"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+              <FileText size={10} /> CPF / CNPJ
+            </p>
+            <p className="text-sm font-semibold text-slate-300 tabular-nums">{client.cpf_cnpj}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Main grid ────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna Esquerda: Dados e Contatos */}
-        <div className="space-y-6">
-          <div className="glass rounded-2xl p-6 border-white/5">
-            <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-4">Informações de Contato</h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 group">
-                <div className="p-2 rounded-lg bg-white/5 text-slate-400 group-hover:text-blue-400 transition-colors">
-                  <Mail size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 leading-none">E-mail</p>
-                  <p className="text-slate-200 text-sm mt-1">{client.email || 'Não informado'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 group">
-                <div className="p-2 rounded-lg bg-white/5 text-slate-400 group-hover:text-blue-400 transition-colors">
-                  <Phone size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 leading-none">Telefone</p>
-                  <p className="text-slate-200 text-sm mt-1">{client.phone || 'Não informado'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 group">
-                <div className="p-2 rounded-lg bg-white/5 text-slate-400 group-hover:text-blue-400 transition-colors">
-                  <Globe size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 leading-none">Origem</p>
-                  <p className="text-slate-200 text-sm mt-1">{client.source || 'Tráfego Direto'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass rounded-2xl p-6 border-white/5">
-            <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-4">KPIs do Cliente</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                <p className="text-slate-500 text-[10px] uppercase">LTV Total</p>
-                <p className="text-xl font-bold text-white mt-1">R$ 12.400</p>
-              </div>
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                <p className="text-slate-500 text-[10px] uppercase">Score</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xl font-bold text-blue-400">{client.score}%</span>
-                  <TrendingUp size={14} className="text-green-500" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Coluna Central: Timeline e Projetos */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="glass rounded-2xl p-6 border-white/5">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white font-semibold flex items-center gap-2">
-                <Zap size={18} className="text-blue-400" /> Projetos em Andamento
-              </h3>
-              <button className="text-xs text-blue-400 hover:underline">Ver Todos</button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer group">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">Rebranding Institucional</h4>
-                    <p className="text-xs text-slate-500 mt-1">SLA: 100% • Entrega em 12 dias</p>
-                  </div>
-                  <ExternalLink size={14} className="text-slate-600 group-hover:text-blue-400" />
-                </div>
-                <div className="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
-                  <div className="w-3/4 h-full bg-blue-500 rounded-full" />
-                </div>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer group">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">Gestão de Tráfego - Março</h4>
-                    <p className="text-xs text-slate-500 mt-1">SLA: 92% • Entrega em 5 dias</p>
-                  </div>
-                  <ExternalLink size={14} className="text-slate-600 group-hover:text-blue-400" />
-                </div>
-                <div className="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
-                  <div className="w-1/2 h-full bg-blue-500 rounded-full" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass rounded-2xl p-6 border-white/5">
-            <h3 className="text-white font-semibold mb-6 flex items-center gap-2">
-              <Calendar size={18} className="text-blue-400" /> Histórico de Atividades
+        {/* Left column: contact info */}
+        <div className="space-y-4">
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">
+              Informações de Contato
             </h3>
-            <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1px] before:bg-white/10">
-              <div className="relative pl-8">
-                <div className="absolute left-0 top-1 w-6 h-6 rounded-full glass border-white/10 flex items-center justify-center text-[10px] text-blue-400">
-                  <DollarSign size={10} />
-                </div>
-                <p className="text-sm text-white">Pagamento Confirmado</p>
-                <p className="text-xs text-slate-500 mt-1">Referente à fatura #2890 • Ontem às 14:20</p>
-              </div>
-              <div className="relative pl-8">
-                <div className="absolute left-0 top-1 w-6 h-6 rounded-full glass border-white/10 flex items-center justify-center text-[10px] text-green-400">
-                  <Zap size={10} />
-                </div>
-                <p className="text-sm text-white">Projeto Finalizado</p>
-                <p className="text-xs text-slate-500 mt-1">Design de Landing Page • 02/03/2026</p>
-              </div>
-              <div className="relative pl-8">
-                <div className="absolute left-0 top-1 w-6 h-6 rounded-full glass border-white/10 flex items-center justify-center text-[10px] text-slate-400">
-                  <Mail size={10} />
-                </div>
-                <p className="text-sm text-white">E-mail Enviado</p>
-                <p className="text-xs text-slate-500 mt-1">Proposta comercial enviada • 28/02/2026</p>
-              </div>
+            <div className="space-y-3">
+              <ContactRow icon={Mail} label="E-mail" value={client.email} />
+              <ContactRow icon={Phone} label="Telefone" value={client.phone} />
+              {(client.cidade || client.uf) && (
+                <ContactRow
+                  icon={MapPin}
+                  label="Localização"
+                  value={[client.cidade, client.uf].filter(Boolean).join(' – ')}
+                />
+              )}
+              {client.logradouro && (
+                <ContactRow
+                  icon={MapPin}
+                  label="Endereço"
+                  value={[client.logradouro, client.numero].filter(Boolean).join(', ')}
+                />
+              )}
             </div>
           </div>
         </div>
+
+        {/* Right column: financial payments */}
+        <div className="lg:col-span-2">
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">
+              Cobranças
+            </h3>
+            <FinancialCard clientId={client.id} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Small helper ──────────────────────────────────────────────
+function ContactRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType
+  label: string
+  value: string | null | undefined
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div
+        className="p-1.5 rounded-lg flex-shrink-0 mt-0.5"
+        style={{ background: 'rgba(255,255,255,0.04)' }}
+      >
+        <Icon size={13} className="text-slate-500" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[9px] text-slate-600 uppercase tracking-wide">{label}</p>
+        <p className="text-xs text-slate-300 mt-0.5 break-words">{value || 'Não informado'}</p>
       </div>
     </div>
   )

@@ -4,7 +4,25 @@
 
 ---
 
-## 🚀 Módulo 1 · Comercial & SDR (Workspace de Vendas)
+## � Prioridade Imediata (Fase 3: Gestão de Clientes & Ciclo de Vida)
+
+Ações necessárias para destravar o módulo financeiro e operacional.
+
+- [ ] **Módulo de Clientes (Base Central)**:
+  - Criar aba "Clientes" que lista registros da tabela `clients`.
+  - Formulário de Onboarding Completo (CPF/CNPJ, Endereço, Faturamento).
+- [ ] **Automação de Conversão**:
+  - Programar botão "Converter em Cliente" no Lead Drawer.
+  - Gatilho Kanban: Conversão automática ao mover Deal para "Fechado".
+- [ ] **Pipeline Dinâmico**:
+  - Vincular seletor de estágio do Lead diretamente às colunas do Kanban.
+- [ ] **Controle Financeiro (Asaas Control)**:
+  - Botões de Cancelamento, Estorno e Alteração de Vencimento no CRM.
+  - Botão de "Segunda Via" (Reenviar Notificação).
+
+---
+
+## �🚀 Módulo 1 · Comercial & SDR (Workspace de Vendas)
 
 Interface de alta conversão focada em velocidade e dados.
 
@@ -133,6 +151,7 @@ Interface de alta conversão focada em velocidade e dados.
 
 - [x] **Global Drag & Drop**: Habilitar movimentação total no Kanban.
 - [x] **Client Drawer**: Slide-over para evitar perda de contexto.
+- [ ] **Financeiro (Fase 2 - Outbound)**: Configurar n8n para polling de novas cobranças. [EM PROGRESSO]
 - [ ] **Ativar Botões**: "Novo Lead" e "Novo Projeto" (validar persistência real no Supabase).
 - [ ] **Configurações**: Corrigir persistência do formulário e upload de logotipo.
 - [ ] **Dropdown de Serviços**: Substituir texto livre por lista pré-definida no Pipeline.

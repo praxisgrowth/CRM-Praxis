@@ -1,6 +1,6 @@
 export type Trend = 'up' | 'down' | 'flat'
 
-export type PipelineStage = 'prospeccao' | 'reuniao' | 'proposta' | 'negociacao' | 'fechado'
+export type PipelineStage = Lead['stage']
 export type Priority      = 'baixa' | 'media' | 'alta'
 
 export interface PipelineDeal {
@@ -21,9 +21,20 @@ export interface Lead {
   name: string
   email: string | null
   phone: string | null
-  stage: 'novo' | 'qualificado' | 'proposta' | 'negociacao' | 'fechado'
+  stage: 'prospeccao' | 'reuniao' | 'proposta' | 'negociacao' | 'fechado'
   score: number
   source: string | null
+  // ─── Pipeline fields (unified_leads_migration.sql) ─────────
+  title:    string | null
+  value:    number
+  priority: Priority | null
+  company:  string | null
+  tags:     string[]
+  // ─── ICP fields (icp_migration.sql) ───────────────────────
+  faturamento: string | null
+  team_size:   string | null
+  dores:       string | null
+  // ──────────────────────────────────────────────────────────
   created_at: string
   updated_at: string
 }
@@ -37,6 +48,17 @@ export interface Client {
   trend: Trend
   avatar: string
   asaas_id: string | null
+  // ─── Billing fields (Fase 3a) ─────────────────────
+  email:      string | null
+  phone:      string | null
+  cpf_cnpj:   string | null
+  cep:        string | null
+  logradouro: string | null
+  numero:     string | null
+  bairro:     string | null
+  cidade:     string | null
+  uf:         string | null
+  // ──────────────────────────────────────────────────
   created_at: string
   updated_at: string
 }

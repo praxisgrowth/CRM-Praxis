@@ -38,7 +38,6 @@ function buildMilestones(project: ProjectWithTasks) {
   const tasks    = project.tasks
   const done     = tasks.filter(t => t.status === 'concluida')
   const running  = tasks.filter(t => t.status === 'em_andamento')
-  const pending  = tasks.filter(t => t.status === 'pendente')
   const progress = calcProgress(project)
 
   return [
@@ -55,7 +54,7 @@ function buildMilestones(project: ProjectWithTasks) {
       label: 'Execução',
       sub: `${done.length}/${tasks.length} tarefas concluídas`,
       date: running.length ? 'Em andamento' : done.length === tasks.length ? 'Concluído' : 'Aguardando',
-      status: (running.length > 0 ? 'active' : done.length === tasks.length ? 'done' : 'pending') as const,
+      status: (running.length > 0 ? 'active' : done.length === tasks.length ? 'done' : 'pending') as 'active' | 'done' | 'pending',
       icon: Rocket,
     },
     {
@@ -63,7 +62,7 @@ function buildMilestones(project: ProjectWithTasks) {
       label: 'Revisão & Aprovação',
       sub: 'Central de Aprovações',
       date: progress >= 80 ? 'Em revisão' : 'Aguardando execução',
-      status: (progress >= 80 ? 'active' : progress === 100 ? 'done' : 'pending') as const,
+      status: (progress >= 80 ? 'active' : progress === 100 ? 'done' : 'pending') as 'active' | 'done' | 'pending',
       icon: ShieldCheck,
     },
     {
@@ -71,7 +70,7 @@ function buildMilestones(project: ProjectWithTasks) {
       label: 'Entrega Final',
       sub: project.due_date ? `Previsto: ${fmtDate(project.due_date)}` : 'Data a definir',
       date: project.status === 'concluido' ? 'Concluído' : fmtDate(project.due_date),
-      status: (project.status === 'concluido' ? 'done' : 'pending') as const,
+      status: (project.status === 'concluido' ? 'done' : 'pending') as 'done' | 'pending',
       icon: CheckCircle2,
     },
   ]
