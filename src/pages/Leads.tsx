@@ -10,20 +10,20 @@ type StageKey    = Lead['stage']
 type StageFilter = StageKey | 'todos'
 
 const STAGE_CONFIG: Record<StageKey, { label: string; color: string }> = {
-  novo:        { label: 'Novo',        color: '#6366f1' },
-  qualificado: { label: 'Qualificado', color: '#8b5cf6' },
-  proposta:    { label: 'Proposta',    color: '#f59e0b' },
-  negociacao:  { label: 'Negociação',  color: '#10b981' },
-  fechado:     { label: 'Fechado',     color: '#64748b' },
+  prospeccao: { label: 'Prospecção', color: '#6366f1' },
+  reuniao:    { label: 'Reunião',    color: '#8b5cf6' },
+  proposta:   { label: 'Proposta',   color: '#f59e0b' },
+  negociacao: { label: 'Negociação', color: '#10b981' },
+  fechado:    { label: 'Fechado',    color: '#64748b' },
 }
 
+// 'fechado' não aparece como chip — leads fechados ficam só na aba Clientes
 const FILTER_CHIPS: { id: StageFilter; label: string; color: string }[] = [
-  { id: 'todos',       label: 'Todos',       color: '#94a3b8' },
-  { id: 'novo',        label: 'Novo',        color: '#6366f1' },
-  { id: 'qualificado', label: 'Qualificado', color: '#8b5cf6' },
-  { id: 'proposta',    label: 'Proposta',    color: '#f59e0b' },
-  { id: 'negociacao',  label: 'Negociação',  color: '#10b981' },
-  { id: 'fechado',     label: 'Fechado',     color: '#64748b' },
+  { id: 'todos',      label: 'Todos',      color: '#94a3b8' },
+  { id: 'prospeccao', label: 'Prospecção', color: '#6366f1' },
+  { id: 'reuniao',    label: 'Reunião',    color: '#8b5cf6' },
+  { id: 'proposta',   label: 'Proposta',   color: '#f59e0b' },
+  { id: 'negociacao', label: 'Negociação', color: '#10b981' },
 ]
 
 const TABLE_HEADERS = ['Nome', 'E-mail', 'Origem', 'Score', 'Estágio', 'Criado em']
@@ -160,10 +160,13 @@ export function LeadsPage() {
   const [showNewLead, setShowNewLead]     = useState(false)
   const [selectedLead, setSelectedLead]   = useState<Lead | null>(null)
 
+  /* Leads tab never shows 'fechado' — those live in Clientes */
+  const activeLeads = useMemo(() => leads.filter(l => l.stage !== 'fechado'), [leads])
+
   /* Filtered list */
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return leads.filter(l => {
+    return activeLeads.filter(l => {
       const matchSearch =
         l.name.toLowerCase().includes(q) ||
         (l.email?.toLowerCase().includes(q) ?? false) ||
@@ -171,14 +174,14 @@ export function LeadsPage() {
       const matchStage = stageFilter === 'todos' || l.stage === stageFilter
       return matchSearch && matchStage
     })
-  }, [leads, search, stageFilter])
+  }, [activeLeads, search, stageFilter])
 
   /* Count per stage for badges on filter chips */
   const countByStage = useMemo(() => {
-    const map: Record<string, number> = { todos: leads.length }
-    leads.forEach(l => { map[l.stage] = (map[l.stage] ?? 0) + 1 })
+    const map: Record<string, number> = { todos: activeLeads.length }
+    activeLeads.forEach(l => { map[l.stage] = (map[l.stage] ?? 0) + 1 })
     return map
-  }, [leads])
+  }, [activeLeads])
 
   return (
     <div className="flex flex-col h-full gap-5">
@@ -314,7 +317,7 @@ export function LeadsPage() {
       {/* Footer count */}
       {!loading && (
         <p className="text-xs text-slate-700 flex-shrink-0 text-right">
-          {filtered.length} de {leads.length} lead{leads.length !== 1 ? 's' : ''}
+          {filtered.length} de {activeLeads.length} lead{activeLeads.length !== 1 ? 's' : ''}
         </p>
       )}
 
@@ -331,6 +334,10 @@ export function LeadsPage() {
         <ClientDrawer
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
+          onLeadUpdated={(updated) => {
+            setSelectedLead(updated)
+            refetch()
+          }}
         />
       )}
 

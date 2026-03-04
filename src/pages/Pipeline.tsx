@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { supabase } from '../lib/supabase'
+import { BillingOnboardingModal } from '../components/pipeline/BillingOnboardingModal'
 import {
   DndContext,
   DragOverlay,
@@ -14,18 +16,14 @@ import {
 import { KanbanColumn } from '../components/pipeline/KanbanColumn'
 import { DealCard } from '../components/pipeline/DealCard'
 import { NewDealModal } from '../components/pipeline/NewDealModal'
-import { usePipeline } from '../hooks/usePipeline'
-import type { PipelineDeal, PipelineStage } from '../lib/database.types'
-import type { ColumnConfig } from '../components/pipeline/KanbanColumn'
+import { ClientDrawer } from '../components/leads/ClientDrawer'
+import { useLeads } from '../hooks/useLeads'
+import type { Lead, PipelineStage } from '../lib/database.types'
+import type { NewDealInput } from '../hooks/usePipeline'
+import { PIPELINE_STAGES } from '../config/pipeline'
 
 /* ─── Column definitions ─────────────────────────── */
-const COLUMNS: ColumnConfig[] = [
-  { id: 'prospeccao', label: 'Prospecção', color: '#6366f1', glow: 'rgba(99,102,241,0.6)'  },
-  { id: 'reuniao',    label: 'Reunião',    color: '#8b5cf6', glow: 'rgba(139,92,246,0.6)'  },
-  { id: 'proposta',   label: 'Proposta',   color: '#f59e0b', glow: 'rgba(245,158,11,0.6)'  },
-  { id: 'negociacao', label: 'Negociação', color: '#10b981', glow: 'rgba(16,185,129,0.6)'  },
-  { id: 'fechado',    label: 'Fechado',    color: '#64748b', glow: 'rgba(100,116,139,0.6)' },
-]
+const COLUMNS = PIPELINE_STAGES
 
 function formatBigValue(v: number) {
   if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`
@@ -35,9 +33,13 @@ function formatBigValue(v: number) {
 
 /* ─── Page ───────────────────────────────────────── */
 export function PipelinePage() {
-  const { deals, loading, error, moveDeal, addDeal, deleteDeal, refetch } = usePipeline()
-  const [activeDeal, setActiveDeal] = useState<PipelineDeal | null>(null)
-  const [showModal,  setShowModal]  = useState(false)
+  const { leads, loading, error, moveLead, addLead, deleteLead, refetch } = useLeads()
+  const [activeLead,   setActiveLead]   = useState<Lead | null>(null)
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [showModal,    setShowModal]    = useState(false)
+  const [onboarding,   setOnboarding]   = useState<{ clientId: string; clientName: string } | null>(null)
+  /* IDs de leads já convertidos — evita reconversão ao arrastar de volta */
+  const convertedIds = useRef(new Set<string>())
 
   /* ── Bulk Mode ───────────────────────────────────── */
   const [bulkMode,    setBulkMode]    = useState(false)
@@ -67,13 +69,37 @@ export function PipelinePage() {
   async function handleBulkDelete() {
     const ids = [...selectedIds]
     setSelectedIds(new Set())
-    await Promise.all(ids.map(id => deleteDeal(id)))
+    await Promise.all(ids.map(id => deleteLead(id)))
   }
 
   async function handleBulkMove(stage: PipelineStage) {
     const ids = [...selectedIds]
     setSelectedIds(new Set())
-    await Promise.all(ids.map(id => moveDeal(id, stage)))
+    await Promise.all(ids.map(id => moveLead(id, stage)))
+  }
+
+  async function handleConvertLead(lead: Lead) {
+    try {
+      const clientName = lead.company ?? lead.name
+      const { data, error: err } = await (supabase as any)
+        .from('clients')
+        .insert({
+          name:         clientName,
+          mrr:          lead.value,
+          health_score: 50,
+          trend:        'flat',
+          avatar:       clientName.charAt(0).toUpperCase(),
+          asaas_id:     null,
+          segment:      null,
+        })
+        .select('id, name')
+        .single()
+      if (err) throw err
+      convertedIds.current.add(lead.id)
+      setOnboarding({ clientId: data.id, clientName: data.name })
+    } catch (e) {
+      console.error('[handleConvertLead]', e)
+    }
   }
 
   /* dnd-kit sensors — require 8px movement to start drag */
@@ -82,29 +108,49 @@ export function PipelinePage() {
   )
 
   function handleDragStart(e: DragStartEvent) {
-    const deal = e.active.data.current?.deal as PipelineDeal | undefined
-    if (deal) setActiveDeal(deal)
+    const lead = e.active.data.current?.deal as Lead | undefined
+    if (lead) setActiveLead(lead)
   }
 
   function handleDragEnd(e: DragEndEvent) {
-    setActiveDeal(null)
+    setActiveLead(null)
     const { active, over } = e
     if (!over || !active) return
 
-    const dealId   = active.id as string
+    const leadId   = active.id as string
     const newStage = over.id as PipelineStage
 
-    const currentDeal = deals.find(d => d.id === dealId)
-    if (!currentDeal || currentDeal.stage === newStage) return
+    const currentLead = leads.find(l => l.id === leadId)
+    if (!currentLead || currentLead.stage === newStage) return
 
-    moveDeal(dealId, newStage)
+    moveLead(leadId, newStage)
+
+    if (newStage === 'fechado' && !convertedIds.current.has(leadId)) {
+      handleConvertLead(currentLead)
+    }
+  }
+
+  /* Bridge: NewDealModal uses NewDealInput, addLead uses NewLeadInput */
+  async function handleAddDeal(data: NewDealInput) {
+    await addLead({
+      name:     data.contact_name || data.company,
+      email:    null,
+      phone:    null,
+      stage:    data.stage,
+      score:    50,
+      source:   null,
+      title:    data.title,
+      company:  data.company,
+      value:    data.value,
+      priority: data.priority,
+    })
   }
 
   /* Summary stats */
-  const openDeals     = deals.filter(d => d.stage !== 'fechado')
-  const closedDeals   = deals.filter(d => d.stage === 'fechado')
-  const totalPipeline = openDeals.reduce((s, d) => s + d.value, 0)
-  const totalClosed   = closedDeals.reduce((s, d) => s + d.value, 0)
+  const openLeads     = leads.filter(l => l.stage !== 'fechado')
+  const closedLeads   = leads.filter(l => l.stage === 'fechado')
+  const totalPipeline = openLeads.reduce((s, l) => s + l.value, 0)
+  const totalClosed   = closedLeads.reduce((s, l) => s + l.value, 0)
 
   return (
     <div className="flex flex-col h-full gap-5">
@@ -207,9 +253,9 @@ export function PipelinePage() {
       {!loading && (
         <div className="flex items-center gap-4 flex-shrink-0">
           {[
-            { label: 'Em aberto',       value: openDeals.length,              unit: 'negócios', color: '#6366f1' },
+            { label: 'Em aberto',       value: openLeads.length,              unit: 'negócios', color: '#6366f1' },
             { label: 'Valor no funil',  value: formatBigValue(totalPipeline), unit: '',         color: '#f59e0b' },
-            { label: 'Fechados',        value: closedDeals.length,            unit: 'negócios', color: '#10b981' },
+            { label: 'Fechados',        value: closedLeads.length,            unit: 'negócios', color: '#10b981' },
             { label: 'Receita fechada', value: formatBigValue(totalClosed),   unit: '',         color: '#10b981' },
           ].map(s => (
             <div key={s.label} className="flex items-center gap-2">
@@ -238,13 +284,14 @@ export function PipelinePage() {
                 <KanbanColumn
                   key={col.id}
                   column={col}
-                  deals={deals.filter(d => d.stage === col.id)}
-                  onDelete={deleteDeal}
-                  activeDealId={activeDeal?.id ?? null}
+                  leads={leads.filter(l => l.stage === col.id)}
+                  onDelete={deleteLead}
+                  activeDealId={activeLead?.id ?? null}
                   bulkMode={bulkMode}
                   selectedIds={selectedIds}
                   onToggleCard={handleToggleCard}
                   onToggleAll={handleToggleAll}
+                  onCardClick={setSelectedLead}
                 />
               ))
           }
@@ -252,9 +299,9 @@ export function PipelinePage() {
 
         {/* Ghost card while dragging */}
         <DragOverlay dropAnimation={null}>
-          {activeDeal && (
+          {activeLead && (
             <DealCard
-              deal={activeDeal}
+              deal={activeLead}
               onDelete={() => {}}
               isDragOverlay
             />
@@ -266,7 +313,34 @@ export function PipelinePage() {
       {showModal && (
         <NewDealModal
           onClose={() => setShowModal(false)}
-          onSave={addDeal}
+          onSave={handleAddDeal}
+        />
+      )}
+
+      {/* Client 360 Drawer on card click */}
+      {selectedLead && (
+        <ClientDrawer
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onLeadUpdated={(updated) => {
+            setSelectedLead(updated)
+            refetch()
+          }}
+        />
+      )}
+
+      {/* Billing onboarding after Kanban conversion */}
+      {onboarding && (
+        <BillingOnboardingModal
+          dealId={onboarding.clientId}
+          companyName={onboarding.clientName}
+          onClose={() => setOnboarding(null)}
+          onSave={async (data) => {
+            await (supabase as any)
+              .from('clients')
+              .update(data)
+              .eq('id', onboarding.clientId)
+          }}
         />
       )}
     </div>

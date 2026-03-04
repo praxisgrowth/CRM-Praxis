@@ -1,19 +1,49 @@
-import { X, LayoutGrid, Maximize2, Minimize2 } from 'lucide-react'
+import { X, LayoutGrid, Maximize2, Minimize2, Pencil, Check, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { Lead } from '../../lib/database.types'
 import { SDRPlaybook } from './SDRPlaybook'
 import { SDRChat } from './SDRChat'
 import { SDRQualification } from './SDRQualification'
+import { BillingOnboardingModal } from '../pipeline/BillingOnboardingModal'
+import { supabase } from '../../lib/supabase'
 import clsx from 'clsx'
 
 interface Props {
-  lead: Lead
-  onClose: () => void
+  lead:           Lead
+  onClose:        () => void
+  onLeadUpdated?: (updated: Lead) => void
 }
 
-export function ClientDrawer({ lead, onClose }: Props) {
+export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [chatDraft, setChatDraft] = useState('')
+  const [onboarding, setOnboarding] = useState<{ clientId: string; clientName: string } | null>(null)
+  const [editMode,    setEditMode]    = useState(false)
+  const [editName,    setEditName]    = useState(lead.name)
+  const [editEmail,   setEditEmail]   = useState(lead.email ?? '')
+  const [editPhone,   setEditPhone]   = useState(lead.phone ?? '')
+  const [editCompany, setEditCompany] = useState(lead.company ?? '')
+  const [saving,      setSaving]      = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    const updates = {
+      name:    editName.trim()    || lead.name,
+      email:   editEmail.trim()   || null,
+      phone:   editPhone.trim()   || null,
+      company: editCompany.trim() || null,
+    }
+    const { error: err } = await (supabase as any)
+      .from('leads')
+      .update(updates)
+      .eq('id', lead.id)
+    if (!err) {
+      const updated: Lead = { ...lead, ...updates }
+      onLeadUpdated?.(updated)
+      setEditMode(false)
+    }
+    setSaving(false)
+  }
 
   return (
     <>
@@ -52,18 +82,59 @@ export function ClientDrawer({ lead, onClose }: Props) {
              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">
                 {lead.name[0]}
              </div>
-             <div>
-                <div className="flex items-center gap-2">
-                   <h2 className="text-sm font-bold text-white truncate">{lead.name}</h2>
-                   <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[9px] font-bold uppercase border border-blue-500/20">
-                     SDR Workspace
-                   </span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-0.5">Gestão Ativa & Playbook de Vendas</p>
+             <div className="min-w-0">
+                {editMode ? (
+                  <div className="flex flex-col gap-1.5 min-w-0">
+                    <input
+                      className="bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-sm text-white outline-none focus:border-blue-500/50 w-full"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder="Nome"
+                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        className="bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500/50 flex-1 min-w-0"
+                        value={editEmail}
+                        onChange={e => setEditEmail(e.target.value)}
+                        placeholder="E-mail"
+                      />
+                      <input
+                        className="bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500/50 flex-1 min-w-0"
+                        value={editPhone}
+                        onChange={e => setEditPhone(e.target.value)}
+                        placeholder="Telefone"
+                      />
+                    </div>
+                    <input
+                      className="bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500/50 w-full"
+                      value={editCompany}
+                      onChange={e => setEditCompany(e.target.value)}
+                      placeholder="Empresa"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-bold text-white truncate">{lead.name}</h2>
+                      <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[9px] font-bold uppercase border border-blue-500/20">
+                        SDR Workspace
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Gestão Ativa & Playbook de Vendas</p>
+                  </div>
+                )}
              </div>
           </div>
 
           <div className="flex items-center gap-3">
+             <button
+               onClick={() => editMode ? handleSave() : setEditMode(true)}
+               disabled={saving}
+               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+               title={editMode ? 'Salvar alterações' : 'Editar lead'}
+             >
+               {saving ? <Loader2 size={16} className="animate-spin" /> : editMode ? <Check size={16} className="text-green-400" /> : <Pencil size={16} />}
+             </button>
              <button
                onClick={() => setIsExpanded(!isExpanded)}
                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all"
@@ -97,7 +168,10 @@ export function ClientDrawer({ lead, onClose }: Props) {
 
               {/* Coluna 3: CRM Data (30%) */}
               <div className="w-[360px] flex-shrink-0 h-full border-l border-white/5 bg-white/[0.01]">
-                 <SDRQualification lead={lead} />
+                 <SDRQualification
+                   lead={lead}
+                   onConverted={(clientId, clientName) => setOnboarding({ clientId, clientName })}
+                 />
               </div>
             </>
           ) : (
@@ -121,6 +195,20 @@ export function ClientDrawer({ lead, onClose }: Props) {
           </div>
         )}
       </aside>
+
+      {onboarding && (
+        <BillingOnboardingModal
+          dealId={onboarding.clientId}
+          companyName={onboarding.clientName}
+          onClose={() => setOnboarding(null)}
+          onSave={async (data) => {
+            await (supabase as any)
+              .from('clients')
+              .update(data)
+              .eq('id', onboarding.clientId)
+          }}
+        />
+      )}
     </>
   )
 }

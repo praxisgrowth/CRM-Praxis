@@ -12,6 +12,7 @@ import {
   X,
   Globe,
   Settings as SettingsIcon,
+  Users,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -36,6 +37,11 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Leads',    to: '/comercial/leads' },
       { label: 'Pipeline', to: '/comercial/pipeline' },
     ],
+  },
+  {
+    label: 'Clientes',
+    icon: Users,
+    to: '/comercial/clientes',
   },
   {
     label: 'Operação',
