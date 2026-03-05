@@ -64,8 +64,8 @@ Cria uma cobrança no Asaas quando o CRM insere um novo pagamento.
 **Body (JSON):**
 ```json
 {
-  "asaas_id":     "{{ $json.id }}",
-  "payment_link": "{{ $json.bankSlipUrl ?? $json.invoiceUrl ?? null }}",
+  "asaas_id":     "{{ $('Asaas Create Charge').item.json.id }}",
+  "payment_link": "{{ $('Asaas Create Charge').item.json.bankSlipUrl ?? $('Asaas Create Charge').item.json.invoiceUrl ?? null }}",
   "status":       "PENDING"
 }
 ```
@@ -98,7 +98,7 @@ Gera uma 2ª via — cria nova fatura no Asaas com nova data de vencimento e ins
 | Campo | Valor |
 |---|---|
 | Method | GET |
-| URL | `{{ $env.SUPABASE_URL }}/rest/v1/financial_payments?id=eq.{{ $json.body.payment_id }}&select=*` |
+| URL | `{{ $env.SUPABASE_URL }}/rest/v1/financial_payments?id=eq.{{ $('Webhook').item.json.body.payment_id }}&select=*` |
 
 **Headers:**
 ```json
@@ -110,7 +110,16 @@ Gera uma 2ª via — cria nova fatura no Asaas com nova data de vencimento e ins
 
 ### 3. HTTP Request → Asaas (criar nova cobrança)
 
-**URL:** `https://api.asaas.com/v3/payments`
+| Campo | Valor |
+|---|---|
+| Method | POST |
+| URL | `https://api.asaas.com/v3/payments` |
+| Body Content Type | JSON |
+
+**Headers:**
+```json
+{ "access_token": "{{ $env.ASAAS_API_KEY }}" }
+```
 
 **Body (JSON):**
 ```json
