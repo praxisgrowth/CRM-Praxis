@@ -36,6 +36,18 @@ export async function createPayment(input: CreatePaymentInput): Promise<void> {
       payment_link:      null,
     })
   if (error) throw new Error(error.message)
+
+  // Dispara webhook n8n para criação imediata
+  try {
+    const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
+    await fetch(`${baseUrl}/webhook/finance/create-charge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'payment', client_id: input.client_id, value: input.value, due_date: input.due_date }),
+    })
+  } catch (err) {
+    console.error('Falha ao acionar n8n (cobrança já salva no banco local):', err)
+  }
 }
 
 export async function createSubscription(input: CreateSubscriptionInput): Promise<void> {
@@ -52,4 +64,16 @@ export async function createSubscription(input: CreateSubscriptionInput): Promis
       asaas_id:    null,
     })
   if (error) throw new Error(error.message)
+
+  // Dispara webhook n8n para criação imediata
+  try {
+    const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
+    await fetch(`${baseUrl}/webhook/finance/create-charge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'subscription', client_id: input.client_id, value: input.value, cycle: input.cycle }),
+    })
+  } catch (err) {
+    console.error('Falha ao acionar n8n (assinatura já salva no banco local):', err)
+  }
 }
