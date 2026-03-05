@@ -59,7 +59,7 @@ export async function createPayment(input: CreatePaymentInput): Promise<void> {
 }
 
 export async function createSubscription(input: CreateSubscriptionInput): Promise<void> {
-  const { error } = await (supabase as any)
+  const { data, error } = await (supabase as any)
     .from('financial_subscriptions')
     .insert({
       client_id:   input.client_id,
@@ -71,17 +71,26 @@ export async function createSubscription(input: CreateSubscriptionInput): Promis
       status:      'ACTIVE',
       asaas_id:    null,
     })
+    .select('id')
+    .single()
   if (error) throw new Error(error.message)
 
-  // Dispara webhook n8n para criação imediata
-  try {
-    const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
-    await fetch(`${baseUrl}/webhook/finance/create-charge`, {
-      method: 'POST',
+  // Fire-and-forget — falha silenciosa, cron de fallback recupera
+  const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
+  if (baseUrl && data?.id) {
+    fetch(`${baseUrl}/webhook/finance/create-charge`, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'subscription', client_id: input.client_id, value: input.value, cycle: input.cycle }),
-    })
-  } catch (err) {
-    console.error('Falha ao acionar n8n (assinatura já salva no banco local):', err)
+      body: JSON.stringify({
+        type:         'subscription',
+        subscription_id: data.id,
+        client_id:    input.client_id,
+        client_name:  input.client_name,
+        description:  input.description,
+        value:        input.value,
+        billing_type: input.billing_type,
+        cycle:        input.cycle,
+      }),
+    }).catch(() => { /* silent fail */ })
   }
 }
