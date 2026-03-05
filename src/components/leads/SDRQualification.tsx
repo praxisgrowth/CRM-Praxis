@@ -1,9 +1,10 @@
 import { User, Mail, Phone, Globe, Briefcase, Target, Users, TrendingUp, Clock, UserPlus, Loader2, ChevronDown } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Lead } from '../../lib/database.types'
 import { supabase } from '../../lib/supabase'
 import { ActivityTimeline } from './ActivityTimeline'
 import { PIPELINE_STAGES } from '../../config/pipeline'
+import { FinancialCard } from '../financial/FinancialCard'
 
 interface Props {
   lead:         Lead
@@ -38,6 +39,8 @@ export function SDRQualification({ lead, onConverted }: Props) {
   const [icpSaving,     setIcpSaving]     = useState(false)
   const [convertError,  setConvertError]  = useState<string | null>(null)
   const [stageUpdating, setStageUpdating] = useState(false)
+  const [clientId,    setClientId]    = useState<string | null>(null)
+  const [billingOpen, setBillingOpen] = useState(false)
 
   async function handleConvert() {
     setConverting(true)
@@ -93,6 +96,18 @@ export function SDRQualification({ lead, onConverted }: Props) {
       .eq('id', lead.id)
     setStageUpdating(false)
   }
+
+  useEffect(() => {
+    async function fetchClientId() {
+      const { data } = await (supabase as any)
+        .from('clients')
+        .select('id')
+        .eq('name', lead.name)
+        .maybeSingle()
+      setClientId(data?.id ?? null)
+    }
+    fetchClientId()
+  }, [lead.name])
 
   return (
     <div className="flex flex-col h-full bg-white/[0.01] border-l border-white/5 overflow-hidden">
@@ -205,6 +220,45 @@ export function SDRQualification({ lead, onConverted }: Props) {
             </p>
           </div>
           <ActivityTimeline leadId={lead.id} />
+        </div>
+
+        {/* Cobranças Asaas */}
+        <div className="border-t border-white/5 mt-2">
+          <button
+            onClick={() => setBillingOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                Cobranças Asaas
+              </span>
+              {clientId && (
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(0,210,255,0.12)', color: '#00d2ff' }}
+                >
+                  vinculado
+                </span>
+              )}
+            </div>
+            <ChevronDown
+              size={12}
+              className="text-slate-600 transition-transform duration-200"
+              style={{ transform: billingOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            />
+          </button>
+
+          {billingOpen && (
+            <div className="px-4 pb-4">
+              {clientId ? (
+                <FinancialCard clientId={clientId} />
+              ) : (
+                <p className="text-[11px] text-slate-600 text-center py-6">
+                  Lead não convertido — sem cobranças vinculadas.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
