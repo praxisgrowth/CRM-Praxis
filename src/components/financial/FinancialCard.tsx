@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  DollarSign, X, RefreshCw, Clock, Send, CalendarDays, Loader2, CreditCard,
+  DollarSign, X, RefreshCw, Clock, Send, CalendarDays, Loader2, CreditCard, Copy,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { FinancialPayment, AsaasPaymentStatus } from '../../lib/database.types'
@@ -61,6 +61,7 @@ function PaymentRow({ payment }: PaymentRowProps) {
   const canRefund   = hasAsaas && (payment.status === 'CONFIRMED' || payment.status === 'RECEIVED')
   const canPostpone = hasAsaas && payment.status === 'PENDING'
   const canResend   = hasAsaas && (payment.status === 'PENDING' || payment.status === 'OVERDUE')
+  const canDuplicate = hasAsaas && (payment.status === 'PENDING' || payment.status === 'OVERDUE')
 
   return (
     <div
@@ -101,7 +102,7 @@ function PaymentRow({ payment }: PaymentRowProps) {
       </div>
 
       {/* Action buttons */}
-      {(canCancel || canRefund || canPostpone || canResend) && (
+      {(canCancel || canRefund || canPostpone || canResend || canDuplicate) && (
         <div className="flex flex-wrap gap-1.5 pt-1 border-t border-white/5">
           {canResend && (
             <ActionBtn
@@ -110,6 +111,15 @@ function PaymentRow({ payment }: PaymentRowProps) {
               color="#6366f1"
               loading={isLoading('resend', payment.id)}
               onClick={() => runAction('resend')}
+            />
+          )}
+          {canDuplicate && (
+            <ActionBtn
+              label="2ª Via"
+              icon={Copy}
+              color="#00d2ff"
+              loading={isLoading('duplicate', payment.id)}
+              onClick={() => runAction('duplicate')}
             />
           )}
           {canPostpone && !showPostpone && (
