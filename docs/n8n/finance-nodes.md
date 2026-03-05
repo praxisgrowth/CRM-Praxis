@@ -168,6 +168,83 @@ Gera uma 2ª via — cria nova fatura no Asaas com nova data de vencimento e ins
 
 ---
 
+## Node C: create-subscription
+
+Cria uma assinatura recorrente no Asaas quando o CRM insere um novo registro em `financial_subscriptions`.
+
+### 1. Webhook Trigger
+
+| Campo | Valor |
+|---|---|
+| HTTP Method | POST |
+| Path | `/finance/create-subscription` |
+| Response Mode | Immediately |
+
+**Payload recebido do front-end:**
+```json
+{
+  "type":            "subscription",
+  "subscription_id": "uuid-do-registro",
+  "client_id":       "...",
+  "client_name":     "...",
+  "description":     "...",
+  "value":           1500,
+  "billing_type":    "PIX",
+  "cycle":           "MONTHLY"
+}
+```
+
+### 2. HTTP Request → Asaas (criar assinatura)
+
+| Campo | Valor |
+|---|---|
+| Method | POST |
+| URL | `https://api.asaas.com/v3/subscriptions` |
+| Body Content Type | JSON |
+
+**Headers:**
+```json
+{ "access_token": "{{ $env.ASAAS_API_KEY }}" }
+```
+
+**Body (JSON):**
+```json
+{
+  "customer":    "{{ $('Webhook').item.json.body.asaas_customer_id }}",
+  "billingType": "{{ $('Webhook').item.json.body.billing_type }}",
+  "value":       "{{ $('Webhook').item.json.body.value }}",
+  "cycle":       "{{ $('Webhook').item.json.body.cycle }}",
+  "description": "{{ $('Webhook').item.json.body.description }}"
+}
+```
+
+### 3. HTTP Request → Supabase PATCH (gravar asaas_id)
+
+| Campo | Valor |
+|---|---|
+| Method | PATCH |
+| URL | `{{ $env.SUPABASE_URL }}/rest/v1/financial_subscriptions?id=eq.{{ $('Webhook').item.json.body.subscription_id }}` |
+
+**Headers:**
+```json
+{
+  "apikey": "{{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Authorization": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Content-Type": "application/json",
+  "Prefer": "return=minimal"
+}
+```
+
+**Body (JSON):**
+```json
+{
+  "asaas_id": "{{ $('Asaas Create Subscription').item.json.id }}",
+  "status":   "ACTIVE"
+}
+```
+
+---
+
 ## Variáveis de Ambiente (n8n)
 
 Configurar em **Settings → Variables** no n8n:

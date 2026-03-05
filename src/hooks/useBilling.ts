@@ -78,7 +78,7 @@ export async function createSubscription(input: CreateSubscriptionInput): Promis
   // Fire-and-forget — falha silenciosa, cron de fallback recupera
   const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
   if (baseUrl && data?.id) {
-    fetch(`${baseUrl}/webhook/finance/create-charge`, {
+    fetch(`${baseUrl}/webhook/finance/create-subscription`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
