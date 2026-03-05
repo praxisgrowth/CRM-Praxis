@@ -13,6 +13,7 @@ CREATE OR REPLACE FUNCTION public.recalc_mrr_month(p_month TEXT)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_mrr NUMERIC;
@@ -67,3 +68,7 @@ COMMENT ON FUNCTION public.recalc_mrr_month IS
 
 COMMENT ON TRIGGER trg_payment_mrr_recalc ON public.financial_payments IS
   'Dispara recalc_mrr_month quando status muda para RECEIVED ou CONFIRMED.';
+
+COMMENT ON FUNCTION public.trg_fn_payment_mrr_recalc IS
+  'Trigger function: chama recalc_mrr_month quando financial_payments.status '
+  'muda para RECEIVED ou CONFIRMED.';
