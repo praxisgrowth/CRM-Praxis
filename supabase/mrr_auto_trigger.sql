@@ -5,8 +5,9 @@
 -- ================================================================
 
 -- ── 1. Garantir UNIQUE constraint em mrr_history.month ─────────
+ALTER TABLE public.mrr_history DROP CONSTRAINT IF EXISTS mrr_history_month_key;
 ALTER TABLE public.mrr_history
-  ADD CONSTRAINT IF NOT EXISTS mrr_history_month_key UNIQUE (month);
+  ADD CONSTRAINT mrr_history_month_key UNIQUE (month);
 
 -- ── 2. Função de recálculo ─────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.recalc_mrr_month(p_month TEXT)
