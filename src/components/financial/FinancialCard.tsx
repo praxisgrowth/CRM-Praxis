@@ -37,6 +37,8 @@ function PaymentRow({ payment }: PaymentRowProps) {
   const [toast, setToast]           = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [postponeDate, setPostponeDate] = useState('')
   const [showPostpone, setShowPostpone] = useState(false)
+  const [showDuplicate, setShowDuplicate] = useState(false)
+  const [duplicateDate, setDuplicateDate] = useState('')
 
   const cfg     = STATUS_CFG[payment.status]
   const hasAsaas = !!payment.asaas_id
@@ -55,6 +57,7 @@ function PaymentRow({ payment }: PaymentRowProps) {
       type: ok ? 'success' : 'error',
     })
     if (ok && action === 'postpone') setShowPostpone(false)
+    if (ok && action === 'duplicate') setShowDuplicate(false)
   }
 
   const canCancel   = hasAsaas && (payment.status === 'PENDING' || payment.status === 'OVERDUE')
@@ -113,13 +116,13 @@ function PaymentRow({ payment }: PaymentRowProps) {
               onClick={() => runAction('resend')}
             />
           )}
-          {canDuplicate && (
+          {canDuplicate && !showDuplicate && (
             <ActionBtn
               label="2ª Via"
               icon={Copy}
               color="#00d2ff"
               loading={isLoading('duplicate', payment.id)}
-              onClick={() => runAction('duplicate')}
+              onClick={() => setShowDuplicate(true)}
             />
           )}
           {canPostpone && !showPostpone && (
@@ -180,6 +183,41 @@ function PaymentRow({ payment }: PaymentRowProps) {
           </button>
           <button
             onClick={() => { setShowPostpone(false); setPostponeDate('') }}
+            className="text-slate-600 hover:text-slate-400 transition-colors"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
+      {/* Duplicate inline form */}
+      {showDuplicate && (
+        <div
+          className="flex items-center gap-2 p-2.5 rounded-lg"
+          style={{ background: 'rgba(0,210,255,0.06)', border: '1px solid rgba(0,210,255,0.2)' }}
+        >
+          <Copy size={13} className="text-cyan-400 flex-shrink-0" />
+          <input
+            type="date"
+            value={duplicateDate}
+            onChange={e => setDuplicateDate(e.target.value)}
+            className="flex-1 bg-transparent text-xs text-slate-300 outline-none"
+            min={new Date().toISOString().slice(0, 10)}
+          />
+          <button
+            disabled={!duplicateDate || isLoading('duplicate', payment.id)}
+            onClick={() => runAction('duplicate', duplicateDate)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all disabled:opacity-40"
+            style={{ background: 'rgba(0,210,255,0.15)', color: '#00d2ff', border: '1px solid rgba(0,210,255,0.3)' }}
+          >
+            {isLoading('duplicate', payment.id)
+              ? <Loader2 size={10} className="animate-spin" />
+              : <Copy size={10} />
+            }
+            Confirmar
+          </button>
+          <button
+            onClick={() => { setShowDuplicate(false); setDuplicateDate('') }}
             className="text-slate-600 hover:text-slate-400 transition-colors"
           >
             <X size={13} />
