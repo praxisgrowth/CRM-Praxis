@@ -56,8 +56,8 @@ function PaymentRow({ payment }: PaymentRowProps) {
         : `Falha ao executar "${action}". Tente novamente.`,
       type: ok ? 'success' : 'error',
     })
-    if (ok && action === 'postpone') setShowPostpone(false)
-    if (ok && action === 'duplicate') setShowDuplicate(false)
+    if (ok && action === 'postpone') { setShowPostpone(false); setPostponeDate('') }
+    if (ok && action === 'duplicate') { setShowDuplicate(false); setDuplicateDate('') }
   }
 
   const canCancel   = hasAsaas && (payment.status === 'PENDING' || payment.status === 'OVERDUE')
