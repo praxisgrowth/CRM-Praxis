@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-export type FinancialAction = 'cancel' | 'refund' | 'postpone' | 'resend' | 'charge'
+export type FinancialAction = 'cancel' | 'refund' | 'postpone' | 'resend' | 'charge' | 'duplicate'
 
 export interface ChargePayload {
   client_id:    string
