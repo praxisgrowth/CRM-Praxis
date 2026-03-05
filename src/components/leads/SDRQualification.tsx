@@ -98,6 +98,7 @@ export function SDRQualification({ lead, onConverted }: Props) {
   }
 
   useEffect(() => {
+    if (!lead.name) return
     let cancelled = false
     async function fetchClientId() {
       const { data } = await (supabase as any)
