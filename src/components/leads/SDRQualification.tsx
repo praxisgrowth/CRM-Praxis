@@ -98,15 +98,17 @@ export function SDRQualification({ lead, onConverted }: Props) {
   }
 
   useEffect(() => {
+    let cancelled = false
     async function fetchClientId() {
       const { data } = await (supabase as any)
         .from('clients')
         .select('id')
         .eq('name', lead.name)
         .maybeSingle()
-      setClientId(data?.id ?? null)
+      if (!cancelled) setClientId(data?.id ?? null)
     }
     fetchClientId()
+    return () => { cancelled = true }
   }, [lead.name])
 
   return (
