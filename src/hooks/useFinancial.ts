@@ -89,7 +89,7 @@ export function useFinancial(): UseFinancialResult {
           supabase.from('mrr_history').select('*').order('recorded_at', { ascending: true }),
           supabase.from('financial_transactions').select('*').order('date', { ascending: false }),
           supabase.from('clients').select('id', { count: 'exact', head: true }),
-          supabase.from('financial_payments').select('*').order('created_at', { ascending: false }).limit(20),
+          supabase.from('financial_payments').select('*, clients(phone, email)').order('created_at', { ascending: false }).limit(20),
         ])
 
         if (mrrRes.error)    console.error('Error fetching MRR history:', mrrRes.error)

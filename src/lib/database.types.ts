@@ -122,6 +122,7 @@ export interface FinancialPayment {
   billing_type:      AsaasBillingType
   created_at:        string
   updated_at:        string
+  clients?:          { phone?: string | null; email?: string | null } | null
 }
 
 export type SubscriptionCycle  = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'BIMONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY'

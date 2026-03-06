@@ -13,6 +13,7 @@ import { useFinancial } from '../hooks/useFinancial'
 import type { FinancialKPIs, UseFinancialResult } from '../hooks/useFinancial'
 import type { FinancialTransaction, TransactionStatus, FinancialPayment } from '../lib/database.types'
 import { BillingDrawer } from '../components/financial/BillingDrawer'
+import { PaymentDetailDrawer } from '../components/financial/PaymentDetailDrawer'
 import { Toast } from '../components/financial/Toast'
 
 /* ─── Config ─────────────────────────────────────── */
@@ -303,12 +304,13 @@ const PAYMENT_STATUS_CFG: Record<string, { label: string; color: string }> = {
   CANCELLED: { label: 'Cancelado',  color: '#64748b' },
 }
 
-function PaymentRow({ payment }: { payment: FinancialPayment }) {
+function PaymentRow({ payment, onClick }: { payment: FinancialPayment; onClick: () => void }) {
   const st = PAYMENT_STATUS_CFG[payment.status] ?? { label: payment.status, color: '#64748b' }
 
   return (
     <tr
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+      onClick={onClick}
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }}
       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
@@ -399,9 +401,10 @@ function SkeletonTxRow() {
 /* ─── Page ───────────────────────────────────────── */
 export function FinancialPage() {
   const { kpis, mrrHistory, transactions, payments, loading, error, refetch } = useFinancial()
-  const [txFilter,     setTxFilter]     = useState<TxFilter>('todos')
-  const [drawerOpen,   setDrawerOpen]   = useState(false)
-  const [toast,        setToast]        = useState<{ message: string } | null>(null)
+  const [txFilter,       setTxFilter]       = useState<TxFilter>('todos')
+  const [drawerOpen,     setDrawerOpen]     = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<FinancialPayment | null>(null)
+  const [toast,          setToast]          = useState<{ message: string } | null>(null)
 
   /* Filtered transactions */
   const filteredTxs = useMemo(() =>
@@ -522,7 +525,7 @@ export function FinancialPage() {
               </tr>
             </thead>
             <tbody>
-              {payments.map(p => <PaymentRow key={p.id} payment={p} />)}
+              {payments.map(p => <PaymentRow key={p.id} payment={p} onClick={() => setSelectedPayment(p)} />)}
             </tbody>
           </table>
         </div>
@@ -612,6 +615,12 @@ export function FinancialPage() {
           </p>
         )}
       </div>
+
+      <PaymentDetailDrawer
+        payment={selectedPayment}
+        onClose={() => setSelectedPayment(null)}
+        onSuccess={msg => { setToast({ message: msg }); refetch() }}
+      />
 
       <BillingDrawer
         open={drawerOpen}
