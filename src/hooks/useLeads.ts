@@ -47,6 +47,8 @@ export function useLeads(): UseLeadsResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const { logAction } = useAudit()
+
   const fetchLeads = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -109,8 +111,6 @@ export function useLeads(): UseLeadsResult {
     setLeads(prev => prev.map(l => l.id === optimistic.id ? data as Lead : l))
     console.info('[useLeads] Lead persistido com ID:', (data as any).id)
   }, [])
-
-  const { logAction } = useAudit()
 
   /** Move lead to new stage — optimistic + persist */
   const moveLead = useCallback(async (id: string, stage: Lead['stage']) => {
