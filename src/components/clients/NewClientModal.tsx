@@ -53,6 +53,7 @@ export function NewClientModal({ onClose, onSave }: Props) {
         bairro:       null,
         cidade:       null,
         uf:           null,
+        complemento:  null,
       })
       onClose()
     } catch (e) {

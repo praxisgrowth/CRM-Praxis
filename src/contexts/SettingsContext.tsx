@@ -42,16 +42,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         .from('agency_settings')
         .select('*')
         .limit(1)
+        .maybeSingle()
       if (data) {
         setSettings(data as AgencySettings)
         // Fire-and-forget: registra acesso ao sistema
-        supabase.from('audit_logs').insert({
-          user_name:   (data as AgencySettings).user_name || 'Admin',
+        ;(supabase as any).from('audit_logs').insert({
+          user_name:   (data as any).user_name || 'Admin',
           action:      'Login',
           entity_type: 'session',
           entity_id:   null,
           details:     { timestamp: new Date().toISOString() },
-        }).then(() => {}).catch(() => {})
+        }).catch(() => {})
       }
     } catch (e) {
       console.error('[SettingsContext] load error:', e)

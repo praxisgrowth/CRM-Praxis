@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { X, Edit2, Save, X as XIcon, ExternalLink, Send, Trash2, RotateCcw, Loader2 } from 'lucide-react'
+import { X, Edit2, Save, X as XIcon, ExternalLink, Send, Trash2, RotateCcw, Loader2, Trash } from 'lucide-react'
 import type { FinancialPayment } from '../../lib/database.types'
-import { updatePayment, cancelPayment, refundPayment, resendPayment } from '../../hooks/useBilling'
+import { updatePayment, cancelPayment, refundPayment, resendPayment, deletePayment } from '../../hooks/useBilling'
+import { supabase } from '../../lib/supabase'
+import { useAudit } from '../../hooks/useAudit'
 
 interface Props {
   payment: FinancialPayment | null
@@ -51,19 +53,20 @@ function getClientContact(p: FinancialPayment) {
 }
 
 export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
+  const { logAction } = useAudit()
   const [editMode,   setEditMode]   = useState(false)
   const [desc,       setDesc]       = useState('')
   const [valueFmt,   setValueFmt]   = useState('R$ 0,00')
   const [dueDate,    setDueDate]    = useState('')
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState<string | null>(null)
-  const [confirming, setConfirming] = useState<'cancel' | 'refund' | null>(null)
+  const [confirming, setConfirming] = useState<'cancel' | 'refund' | 'delete' | null>(null)
 
   useEffect(() => {
     if (!payment) return
-    setDesc(p.description)
-    setValueFmt(p.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
-    setDueDate(p.due_date ?? '')
+    setDesc(payment.description)
+    setValueFmt(payment.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
+    setDueDate(payment.due_date ?? '')
     setEditMode(false); setError(null); setConfirming(null)
   }, [payment])
 
@@ -73,7 +76,7 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
   const p = payment
 
   const st        = STATUS_CFG[p.status] ?? { label: p.status, color: '#64748b' }
-  const canEdit   = !!p.asaas_id && ['PENDING', 'OVERDUE'].includes(p.status)
+  void true // canEdit: sempre permitir editar campos locais
   const canCancel = !!p.asaas_id && ['PENDING', 'OVERDUE'].includes(p.status)
   const canRefund = !!p.asaas_id && ['CONFIRMED', 'RECEIVED'].includes(p.status)
   const { phone, email } = getClientContact(p)
@@ -90,20 +93,34 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     if (value <= 0)     { setError('Valor inválido.'); return }
     if (!desc.trim())   { setError('Descrição obrigatória.'); return }
     if (!dueDate)       { setError('Data obrigatória.'); return }
-    if (!p.asaas_id)   return
     setLoading(true); setError(null)
     try {
-      await updatePayment({
-        asaas_id:     p.asaas_id,
-        payment_id:   p.id,
-        due_date:     dueDate,
-        value,
-        description:  desc.trim(),
-        client_name:  p.client_name ?? '',
-        client_phone: phone,
-        client_email: email,
+      if (p.asaas_id) {
+        await updatePayment({
+          asaas_id:     p.asaas_id,
+          payment_id:   p.id,
+          due_date:     dueDate,
+          value,
+          description:  desc.trim(),
+          client_name:  p.client_name ?? '',
+          client_phone: phone,
+          client_email: email,
+        })
+      } else {
+        // Update local only if no Asaas ID
+        const { error: upErr } = await (supabase as any)
+          .from('financial_payments')
+          .update({ description: desc.trim(), value, due_date: dueDate })
+          .eq('id', p.id)
+        if (upErr) throw upErr
+      }
+      
+      await logAction('Update Payment', 'financial_payment', p.id, { 
+        old: { description: p.description, value: p.value, due_date: p.due_date },
+        new: { description: desc.trim(), value, due_date: dueDate }
       })
-      onSuccess('Cobrança atualizada! WhatsApp e email enviados.'); onClose()
+
+      onSuccess('Cobrança atualizada!'); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao salvar.')
     } finally { setLoading(false) }
@@ -115,6 +132,7 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     setLoading(true); setError(null)
     try {
       await cancelPayment(p.asaas_id, p.id, p.client_name ?? '', phone, email, p.description)
+      await logAction('Cancel Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
       onSuccess('Cobrança cancelada! Cliente notificado.'); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao cancelar.')
@@ -127,9 +145,22 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     setLoading(true); setError(null)
     try {
       await refundPayment(p.asaas_id, p.id, p.client_name ?? '', phone, email, p.description)
+      await logAction('Refund Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
       onSuccess('Cobrança estornada! Cliente notificado.'); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao estornar.')
+    } finally { setLoading(false) }
+  }
+
+  async function handleDelete() {
+    if (confirming !== 'delete') { setConfirming('delete'); return }
+    setLoading(true); setError(null)
+    try {
+      await deletePayment(p.id)
+      await logAction('Delete Payment', 'financial_payment', p.id, { description: p.description, value: p.value })
+      onSuccess('Registro excluído!'); onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao excluir.')
     } finally { setLoading(false) }
   }
 
@@ -199,12 +230,17 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
           {/* Confirmação de ação destrutiva */}
           {confirming && (
             <div className="px-3 py-2.5 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <p className="text-red-400 font-semibold mb-1">Confirmar {confirming === 'cancel' ? 'cancelamento' : 'estorno'}?</p>
+              <p className="text-red-400 font-semibold mb-1">Confirmar {confirming === 'cancel' ? 'cancelamento' : confirming === 'refund' ? 'estorno' : 'exclusão'}?</p>
               <p className="text-slate-500">Esta ação não pode ser desfeita.</p>
               <div className="flex gap-2 mt-2">
                 <button onClick={() => setConfirming(null)} className="flex-1 py-1.5 rounded-lg text-slate-400 text-xs" style={{ background: 'rgba(255,255,255,0.05)' }}>Voltar</button>
-                <button onClick={confirming === 'cancel' ? handleCancel : handleRefund} disabled={loading} className="flex-1 py-1.5 rounded-lg text-red-400 text-xs font-semibold" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                  {loading ? <Loader2 size={12} className="animate-spin mx-auto" /> : confirming === 'cancel' ? 'Confirmar Cancelamento' : 'Confirmar Estorno'}
+                <button 
+                  onClick={confirming === 'delete' ? handleDelete : (confirming === 'cancel' ? handleCancel : handleRefund)} 
+                  disabled={loading} 
+                  className="flex-1 py-1.5 rounded-lg text-red-400 text-xs font-semibold" 
+                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}
+                >
+                  {loading ? <Loader2 size={12} className="animate-spin mx-auto" /> : `Confirmar ${confirming === 'cancel' ? 'Cancelamento' : confirming === 'refund' ? 'Estorno' : 'Exclusão'}`}
                 </button>
               </div>
             </div>
@@ -231,22 +267,27 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
                     <Send size={11} /> 2ª Via
                   </button>
                 )}
-                {canEdit && (
-                  <button onClick={() => setEditMode(true)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-colors" style={{ background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.3)', color: '#00d2ff' }}>
-                    <Edit2 size={11} /> Editar
+                <button onClick={() => setEditMode(true)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-colors" style={{ background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.3)', color: '#00d2ff' }}>
+                  <Edit2 size={11} /> Editar
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {canCancel && !confirming && (
+                  <button onClick={handleCancel} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <Trash2 size={11} /> Cancelar Asaas
+                  </button>
+                )}
+                {canRefund && !confirming && (
+                  <button onClick={handleRefund} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                    <RotateCcw size={11} /> Estornar Asaas
+                  </button>
+                )}
+                {!confirming && (
+                  <button onClick={handleDelete} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold col-span-2" style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Trash size={11} /> Excluir Registro
                   </button>
                 )}
               </div>
-              {canCancel && !confirming && (
-                <button onClick={handleCancel} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                  <Trash2 size={11} /> Cancelar Cobrança
-                </button>
-              )}
-              {canRefund && !confirming && (
-                <button onClick={handleRefund} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                  <RotateCcw size={11} /> Estornar Cobrança
-                </button>
-              )}
             </>
           )}
         </div>
