@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAudit } from './useAudit'
 import type { Lead, Priority } from '../lib/database.types'
 
 /* ─── Types ──────────────────────────────────────── */
@@ -109,6 +110,8 @@ export function useLeads(): UseLeadsResult {
     console.info('[useLeads] Lead persistido com ID:', (data as any).id)
   }, [])
 
+  const { logAction } = useAudit()
+
   /** Move lead to new stage — optimistic + persist */
   const moveLead = useCallback(async (id: string, stage: Lead['stage']) => {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, stage } : l))
@@ -124,6 +127,7 @@ export function useLeads(): UseLeadsResult {
 
   /** Delete lead — optimistic + persist */
   const deleteLead = useCallback(async (id: string) => {
+    const target = leads.find(l => l.id === id)
     setLeads(prev => prev.filter(l => l.id !== id))
     const { error: err } = await (supabase as any)
       .from('leads')
@@ -132,8 +136,10 @@ export function useLeads(): UseLeadsResult {
     if (err) {
       console.error('[deleteLead]', err.message)
       fetchLeads()
+      return
     }
-  }, [fetchLeads])
+    logAction('Delete Lead', 'lead', id, { name: target?.name ?? id })
+  }, [fetchLeads, logAction, leads])
 
   return { leads, loading, error, refetch: fetchLeads, addLead, moveLead, deleteLead }
 }
