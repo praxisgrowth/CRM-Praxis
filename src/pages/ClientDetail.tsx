@@ -180,7 +180,7 @@ export function ClientDetail() {
                 <ContactRow
                   icon={MapPin}
                   label="Endereço"
-                  value={[client.logradouro, client.numero].filter(Boolean).join(', ')}
+                  value={[client.logradouro, client.numero, client.complemento].filter(Boolean).join(', ')}
                 />
               )}
             </div>
