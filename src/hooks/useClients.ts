@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAudit } from './useAudit'
 import type { Client } from '../lib/database.types'
 
 export interface UseClientsReturn {
@@ -17,6 +18,7 @@ export function useClients(): UseClientsReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
+  const { logAction } = useAudit()
 
   const refetch = useCallback(() => setTick(t => t + 1), [])
 
@@ -67,6 +69,7 @@ export function useClients(): UseClientsReturn {
   }, [refetch])
 
   const deleteClient = useCallback(async (id: string) => {
+    const target = clients.find(c => c.id === id)
     setClients(prev => prev.filter(c => c.id !== id))
     const { error: err } = await (supabase as any)
       .from('clients')
@@ -76,8 +79,10 @@ export function useClients(): UseClientsReturn {
     if (err) {
       console.error('[deleteClient]', err.message)
       refetch()
+      return
     }
-  }, [refetch])
+    logAction('Delete Client', 'client', id, { name: target?.name ?? id })
+  }, [refetch, logAction, clients])
 
   return { clients, loading, error, refetch, addClient, updateClient, deleteClient }
 }
