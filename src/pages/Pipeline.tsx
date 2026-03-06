@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { syncCustomer } from '../hooks/useBilling'
 import { BillingOnboardingModal } from '../components/pipeline/BillingOnboardingModal'
@@ -39,8 +39,6 @@ export function PipelinePage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showModal,    setShowModal]    = useState(false)
   const [onboarding,   setOnboarding]   = useState<{ clientId: string; clientName: string } | null>(null)
-  /* IDs de leads já convertidos — evita reconversão ao arrastar de volta */
-  const convertedIds = useRef(new Set<string>())
 
   /* ── Bulk Mode ───────────────────────────────────── */
   const [bulkMode,    setBulkMode]    = useState(false)
@@ -54,7 +52,8 @@ export function PipelinePage() {
   const handleToggleCard = useCallback((id: string, checked: boolean) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
-      checked ? next.add(id) : next.delete(id)
+      if (checked) next.add(id)
+      else next.delete(id)
       return next
     })
   }, [])
@@ -81,11 +80,25 @@ export function PipelinePage() {
 
   async function handleConvertLead(lead: Lead) {
     try {
+      // 1. Verificar se já existe cliente com esse nome ou se já foi convertido
+      const { data: existing } = await (supabase as unknown as { from: any })
+        .from('clients')
+        .select('id')
+        .eq('name', lead.company ?? lead.name)
+        .maybeSingle()
+
+      if (existing) {
+        // Cliente já convertido — silenciosamente pular para evitar re-onboarding
+        return
+      }
+
       const clientName = lead.company ?? lead.name
-      const { data, error: err } = await (supabase as any)
+      const { data, error: err } = await (supabase as unknown as { from: any })
         .from('clients')
         .insert({
           name:         clientName,
+          email:        lead.email,
+          phone:        lead.phone,
           mrr:          lead.value,
           health_score: 50,
           trend:        'flat',
@@ -96,7 +109,6 @@ export function PipelinePage() {
         .select('id, name')
         .single()
       if (err) throw err
-      convertedIds.current.add(lead.id)
       setOnboarding({ clientId: data.id, clientName: data.name })
     } catch (e) {
       console.error('[handleConvertLead]', e)
@@ -126,7 +138,7 @@ export function PipelinePage() {
 
     moveLead(leadId, newStage)
 
-    if (newStage === 'fechado' && !convertedIds.current.has(leadId)) {
+    if (newStage === 'fechado') {
       handleConvertLead(currentLead)
     }
   }
@@ -333,11 +345,11 @@ export function PipelinePage() {
       {/* Billing onboarding after Kanban conversion */}
       {onboarding && (
         <BillingOnboardingModal
-          dealId={onboarding.clientId}
+          clientId={onboarding.clientId}
           companyName={onboarding.clientName}
           onClose={() => setOnboarding(null)}
           onSave={async (data) => {
-            await (supabase as any)
+            await (supabase as unknown as { from: any })
               .from('clients')
               .update(data)
               .eq('id', onboarding.clientId)
