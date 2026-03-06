@@ -8,6 +8,7 @@ export interface CreatePaymentInput {
   value:       number
   billing_type: AsaasBillingType
   due_date:    string   // ISO date YYYY-MM-DD
+  asaas_sync?: boolean
 }
 
 export interface CreateSubscriptionInput {
@@ -17,6 +18,7 @@ export interface CreateSubscriptionInput {
   value:       number
   billing_type: AsaasBillingType
   cycle:       SubscriptionCycle
+  asaas_sync?: boolean
 }
 
 export async function createPayment(input: CreatePaymentInput): Promise<void> {
@@ -40,21 +42,23 @@ export async function createPayment(input: CreatePaymentInput): Promise<void> {
   if (error) throw new Error(error.message)
 
   // Fire-and-forget — falha silenciosa, cron de fallback recupera
-  const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
-  if (baseUrl && data?.id) {
-    fetch(`${baseUrl}/webhook/finance/create-charge`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        payment_id:   data.id,
-        client_id:    input.client_id,
-        client_name:  input.client_name,
-        description:  input.description,
-        value:        input.value,
-        billing_type: input.billing_type,
-        due_date:     input.due_date,
-      }),
-    }).catch(() => { /* silent fail */ })
+  if (input.asaas_sync !== false) {
+    const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
+    if (baseUrl && data?.id) {
+      fetch(`${baseUrl}/webhook/finance/create-charge`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payment_id:   data.id,
+          client_id:    input.client_id,
+          client_name:  input.client_name,
+          description:  input.description,
+          value:        input.value,
+          billing_type: input.billing_type,
+          due_date:     input.due_date,
+        }),
+      }).catch(() => { /* silent fail */ })
+    }
   }
 }
 
@@ -76,22 +80,24 @@ export async function createSubscription(input: CreateSubscriptionInput): Promis
   if (error) throw new Error(error.message)
 
   // Fire-and-forget — falha silenciosa, cron de fallback recupera
-  const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
-  if (baseUrl && data?.id) {
-    fetch(`${baseUrl}/webhook/finance/create-subscription`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type:         'subscription',
-        subscription_id: data.id,
-        client_id:    input.client_id,
-        client_name:  input.client_name,
-        description:  input.description,
-        value:        input.value,
-        billing_type: input.billing_type,
-        cycle:        input.cycle,
-      }),
-    }).catch(() => { /* silent fail */ })
+  if (input.asaas_sync !== false) {
+    const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
+    if (baseUrl && data?.id) {
+      fetch(`${baseUrl}/webhook/finance/create-subscription`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type:         'subscription',
+          subscription_id: data.id,
+          client_id:    input.client_id,
+          client_name:  input.client_name,
+          description:  input.description,
+          value:        input.value,
+          billing_type: input.billing_type,
+          cycle:        input.cycle,
+        }),
+      }).catch(() => { /* silent fail */ })
+    }
   }
 }
 
@@ -168,6 +174,24 @@ export async function refundPayment(
     }),
   });
   if (!res.ok) throw new Error("Erro ao estornar cobrança");
+}
+
+export interface SyncCustomerInput {
+  client_id: string
+  name:      string
+  email:     string
+  phone:     string
+  cpf_cnpj:  string
+}
+
+export function syncCustomer(input: SyncCustomerInput): void {
+  const baseUrl = (import.meta.env.VITE_N8N_WEBHOOK_URL as string | undefined) ?? ''
+  if (!baseUrl) return
+  fetch(`${baseUrl}/webhook/finance/create-customer`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }).catch(() => { /* silent fail */ })
 }
 
 export async function resendPayment(asaas_id: string): Promise<void> {

@@ -67,6 +67,7 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
   const [cycle,           setCycle]           = useState<SubscriptionCycle>('MONTHLY')
   const [loading,         setLoading]         = useState(false)
   const [formError,       setFormError]       = useState<string | null>(null)
+  const [asaasSync,       setAsaasSync]       = useState(true)
 
   const comboRef = useRef<HTMLDivElement>(null)
 
@@ -92,6 +93,7 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
       setDueDate('')
       setCycle('MONTHLY')
       setFormError(null)
+      setAsaasSync(true)
     }
   }, [open])
 
@@ -141,8 +143,11 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
           value,
           billing_type: paymentMethod,
           due_date:    dueDate,
+          asaas_sync:  asaasSync,
         })
-        onSuccess('Cobrança enviada! O n8n irá processar em instantes.')
+        onSuccess(asaasSync
+          ? 'Cobrança enviada! O n8n irá processar em instantes.'
+          : 'Cobrança salva localmente (sem sincronização com Asaas).')
       } else {
         await createSubscription({
           client_id:   selectedClient.id,
@@ -151,8 +156,11 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
           value,
           billing_type: paymentMethod,
           cycle,
+          asaas_sync:  asaasSync,
         })
-        onSuccess('Assinatura criada! O n8n irá ativar em instantes.')
+        onSuccess(asaasSync
+          ? 'Assinatura criada! O n8n irá ativar em instantes.'
+          : 'Assinatura salva localmente (sem sincronização com Asaas).')
       }
       onClose()
     } catch (err) {
@@ -359,6 +367,38 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
                 </div>
               </div>
             )}
+
+            {/* Sincronizar com Asaas */}
+            <div
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div>
+                <p className="text-xs font-medium text-slate-300">Sincronizar com Asaas</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  {asaasSync ? 'Cobrança será enviada ao Asaas via n8n' : 'Salvar apenas localmente'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAsaasSync(v => !v)}
+                className="relative flex-shrink-0 w-11 h-6 rounded-full transition-all duration-200 focus:outline-none"
+                style={{
+                  background: asaasSync
+                    ? 'linear-gradient(135deg, #00d2ff, #0099cc)'
+                    : 'rgba(255,255,255,0.1)',
+                  boxShadow: asaasSync ? '0 0 10px rgba(0,210,255,0.4)' : 'none',
+                }}
+              >
+                <span
+                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200"
+                  style={{
+                    left: asaasSync ? 'calc(100% - 22px)' : '2px',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                  }}
+                />
+              </button>
+            </div>
 
             {/* Erro de formulário */}
             {formError && (

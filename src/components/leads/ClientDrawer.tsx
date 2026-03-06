@@ -5,6 +5,7 @@ import { SDRPlaybook } from './SDRPlaybook'
 import { SDRChat } from './SDRChat'
 import { SDRQualification } from './SDRQualification'
 import { BillingOnboardingModal } from '../pipeline/BillingOnboardingModal'
+import { syncCustomer } from '../../hooks/useBilling'
 import { supabase } from '../../lib/supabase'
 import clsx from 'clsx'
 
@@ -206,6 +207,13 @@ export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
               .from('clients')
               .update(data)
               .eq('id', onboarding.clientId)
+            syncCustomer({
+              client_id: onboarding.clientId,
+              name:      onboarding.clientName,
+              email:     data.email     ?? '',
+              phone:     data.phone     ?? '',
+              cpf_cnpj:  data.cpf_cnpj  ?? '',
+            })
           }}
         />
       )}

@@ -49,6 +49,7 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
   const [focusField, setFocusField] = useState('')
+  const [showRequired, setShowRequired] = useState(false)
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError,   setCepError]   = useState('')
 
@@ -59,9 +60,11 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.cpf_cnpj || !form.email) {
-      setErr('CPF/CNPJ e Email são obrigatórios.')
+      setShowRequired(true)
+      setErr('CPF/CNPJ e Email são obrigatórios para prosseguir.')
       return
     }
+    setShowRequired(false)
     setSaving(true)
     setErr('')
     try {
@@ -73,8 +76,18 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
     }
   }
 
-  const inputStyle = (name: string) =>
-    focusField === name ? { ...FIELD_STYLE, ...FIELD_FOCUS } : FIELD_STYLE
+  const FIELD_ERROR = {
+    border: '1px solid rgba(239,68,68,0.6)',
+    background: 'rgba(239,68,68,0.06)',
+  }
+
+  const inputStyle = (name: string) => {
+    if (showRequired && (name === 'cpf_cnpj' || name === 'email')) {
+      const isEmpty = name === 'cpf_cnpj' ? !form.cpf_cnpj : !form.email
+      if (isEmpty) return focusField === name ? { ...FIELD_ERROR, ...FIELD_FOCUS } : FIELD_ERROR
+    }
+    return focusField === name ? { ...FIELD_STYLE, ...FIELD_FOCUS } : FIELD_STYLE
+  }
 
   async function fetchCep(raw: string) {
     const cep = raw.replace(/\D/g, '')

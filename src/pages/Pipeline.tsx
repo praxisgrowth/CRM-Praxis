@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { syncCustomer } from '../hooks/useBilling'
 import { BillingOnboardingModal } from '../components/pipeline/BillingOnboardingModal'
 import {
   DndContext,
@@ -340,6 +341,13 @@ export function PipelinePage() {
               .from('clients')
               .update(data)
               .eq('id', onboarding.clientId)
+            syncCustomer({
+              client_id: onboarding.clientId,
+              name:      onboarding.clientName,
+              email:     data.email     ?? '',
+              phone:     data.phone     ?? '',
+              cpf_cnpj:  data.cpf_cnpj  ?? '',
+            })
           }}
         />
       )}
