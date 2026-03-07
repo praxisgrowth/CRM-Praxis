@@ -55,6 +55,7 @@ export interface Client {
   cep:        string | null
   logradouro: string | null
   numero:     string | null
+  complemento: string | null
   bairro:     string | null
   cidade:     string | null
   uf:         string | null
@@ -223,6 +224,16 @@ export interface NexusApproval {
   created_at:  string
 }
 
+export interface AuditLog {
+  id:          string
+  user_name:   string
+  action:      string
+  entity_type: string
+  entity_id:   string | null
+  details:     Record<string, unknown> | null
+  created_at:  string
+}
+
 export interface TeamMember {
   id:         string
   name:       string
@@ -310,6 +321,11 @@ export interface Database {
         Row: TeamMember
         Insert: Omit<TeamMember, 'id' | 'created_at'>
         Update: Partial<Omit<TeamMember, 'id' | 'created_at'>>
+      }
+      audit_logs: {
+        Row: AuditLog
+        Insert: Omit<AuditLog, 'id' | 'created_at'>
+        Update: Partial<Omit<AuditLog, 'id' | 'created_at'>>
       }
     }
   }

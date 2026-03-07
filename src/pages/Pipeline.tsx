@@ -38,7 +38,7 @@ export function PipelinePage() {
   const [activeLead,   setActiveLead]   = useState<Lead | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showModal,    setShowModal]    = useState(false)
-  const [onboarding,   setOnboarding]   = useState<{ clientId: string; clientName: string } | null>(null)
+  const [onboarding,   setOnboarding]   = useState<{ clientId: string; clientName: string; leadData?: Partial<Lead> } | null>(null)
 
   /* ── Bulk Mode ───────────────────────────────────── */
   const [bulkMode,    setBulkMode]    = useState(false)
@@ -109,7 +109,7 @@ export function PipelinePage() {
         .select('id, name')
         .single()
       if (err) throw err
-      setOnboarding({ clientId: data.id, clientName: data.name })
+      setOnboarding({ clientId: data.id, clientName: data.name, leadData: lead })
     } catch (e) {
       console.error('[handleConvertLead]', e)
     }
@@ -347,6 +347,7 @@ export function PipelinePage() {
         <BillingOnboardingModal
           clientId={onboarding.clientId}
           companyName={onboarding.clientName}
+          initialData={onboarding.leadData as any}
           onClose={() => setOnboarding(null)}
           onSave={async (data) => {
             await (supabase as unknown as { from: any })

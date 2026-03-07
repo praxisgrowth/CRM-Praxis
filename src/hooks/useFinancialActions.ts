@@ -11,9 +11,14 @@ export interface ChargePayload {
 }
 
 export interface ActionPayload {
-  asaas_id: string
-  payment_id: string
-  new_due_date?: string
+  asaas_id:     string
+  payment_id:   string
+  due_date?:    string
+  value?:       number
+  description?: string
+  client_name?:  string
+  client_phone?: string
+  client_email?: string
 }
 
 export function useFinancialActions() {

@@ -7,6 +7,7 @@ import { SDRQualification } from './SDRQualification'
 import { BillingOnboardingModal } from '../pipeline/BillingOnboardingModal'
 import { syncCustomer } from '../../hooks/useBilling'
 import { supabase } from '../../lib/supabase'
+import { useAudit } from '../../hooks/useAudit'
 import clsx from 'clsx'
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
+  const { logAction } = useAudit()
   const [isExpanded, setIsExpanded] = useState(true)
   const [chatDraft, setChatDraft] = useState('')
   const [onboarding, setOnboarding] = useState<{ clientId: string; clientName: string } | null>(null)
@@ -26,7 +28,14 @@ export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
   const [editCompany, setEditCompany] = useState(lead.company ?? '')
   const [saving,      setSaving]      = useState(false)
 
+  const [saveErr, setSaveErr] = useState('')
+
   async function handleSave() {
+    if (editPhone && editPhone.replace(/\D/g, '').length < 10) {
+      setSaveErr('Telefone inválido — informe o DDD + número (mínimo 10 dígitos).')
+      return
+    }
+    setSaveErr('')
     setSaving(true)
     const updates = {
       name:    editName.trim()    || lead.name,
@@ -41,6 +50,7 @@ export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
     if (!err) {
       const updated: Lead = { ...lead, ...updates }
       onLeadUpdated?.(updated)
+      await logAction('Update Lead', 'lead', lead.id, updates as unknown as Record<string, unknown>)
       setEditMode(false)
     }
     setSaving(false)
@@ -112,6 +122,7 @@ export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
                       onChange={e => setEditCompany(e.target.value)}
                       placeholder="Empresa"
                     />
+                    {saveErr && <p className="text-[10px] text-red-400">{saveErr}</p>}
                   </div>
                 ) : (
                   <div>
@@ -129,7 +140,7 @@ export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
 
           <div className="flex items-center gap-3">
              <button
-               onClick={() => editMode ? handleSave() : setEditMode(true)}
+               onClick={() => editMode ? handleSave() : (setEditMode(true), setSaveErr(''))}
                disabled={saving}
                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
                title={editMode ? 'Salvar alterações' : 'Editar lead'}
@@ -199,14 +210,23 @@ export function ClientDrawer({ lead, onClose, onLeadUpdated }: Props) {
 
       {onboarding && (
         <BillingOnboardingModal
-          dealId={onboarding.clientId}
+          clientId={onboarding.clientId}
           companyName={onboarding.clientName}
+          initialData={lead as any}
           onClose={() => setOnboarding(null)}
           onSave={async (data) => {
-            await (supabase as any)
+            const { error: updateErr } = await (supabase as unknown as { from: (t: string) => { update: (d: any) => { eq: (k: string, v: any) => Promise<{ error: any }> } } })
               .from('clients')
               .update(data)
               .eq('id', onboarding.clientId)
+            
+            if (updateErr) throw updateErr
+
+            await logAction('Sync Asaas', 'client', onboarding.clientId, {
+              name: onboarding.clientName,
+              email: data.email,
+              cpf_cnpj: data.cpf_cnpj
+            } as unknown as Record<string, unknown>)
             syncCustomer({
               client_id: onboarding.clientId,
               name:      onboarding.clientName,

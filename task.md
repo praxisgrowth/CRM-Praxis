@@ -1,95 +1,53 @@
-# CRM Praxis · Roadmap de Desenvolvimento
+# Task Checklist - CRM Praxis Integration
 
-> **Cérebro do Antigravity** — guia de referência para o agente de desenvolvimento.
+- [x] Implementar ações financeiras no n8n (Estornar, Prorrogar, Cancelar, Reenviar)
+- [x] Criar botões de ação no `FinancialCard.tsx`
+- [x] Implementar `useFinancialActions` para disparar os webhooks
+- [x] Validar sincronização Asaas -> n8n -> Supabase
+- [x] Fase 3: Gestão de Clientes & Financeiro
+  - [x] Debugar corpos de requisição (JSON) no n8n
+  - [x] Validar cabeçalhos de autorização do Supabase
+  - [x] Corrigir codificação de caracteres nos nós
+  - [x] Implementação de Auditoria (useAudit)
+- [x] Prevenção de duplicatas na Pipeline
+- [x] Unificação de Onboarding (BillingOnboardingModal)
+- [x] **Pipeline Dinâmico (Arraste automático ao mudar estágio)**
+- [/] Ajustes de Banco de Dados (Phase 3b)
+  - [x] Adicionar coluna `complemento` em `clients`
+  - [x] Criar tabela `audit_logs` no banco
+  - [x] Alinhar tipos e hook de auditoria
+  - [x] Implementar exclusão de cobranças (Cliente e Financeiro)
+  - [x] Auditoria para exclusão de cobranças
+- [x] Documentação final e Walkthrough atualizado
+- [x] Implementar "Sincronizar com Asaas" no `BillingDrawer`
+- [x] Refinar `OnboardingModal` com ViaCEP e validações
+- [x] Automação de "Converter em Cliente" imediata
+- [x] Histórico de pagamentos e atividades (através da `ActivityTimeline`)
+- [x] Sincronização de estágios do Lead (via `SDRQualification`)
+- [x] Consertar erro 404 e automatizar reenvio/2ª via no n8n
+- [/] Impedir dupla conversão de Lead no Pipeline
+- [x] Fase 3: Segurança, Auditoria & UX
+  - [x] Implementar log de auditoria em `deleteLead` (`useLeads.ts`)
+  - [x] Implementar log de auditoria em `deleteClient` (`useClients.ts`)
+  - [x] Implementar log de auditoria em `deleteProject` (`useOperations.ts`)
+  - [x] Corrigir idempotência no Pipeline (evitar re-onboarding)
+  - [x] Capturar evento de 'Login' no `SettingsProvider`
+  - [x] Exibir `complemento` no endereço em `ClientDetail.tsx`
+- [x] Documentação final e Walkthrough atualizado
 
----
+- [x] Fase 3c: Validação de Dados Críticos
+  - [x] Validar DDD obrigatório em `BillingOnboardingModal.tsx`
+  - [x] Validar DDD obrigatório em `NewLeadModal.tsx`
+  - [x] Validar DDD obrigatório na edição em `ClientDetail.tsx`
+  - [x] Validar DDD obrigatório em `NewClientModal.tsx`
+  - [x] Validar DDD obrigatório em `ClientDrawer.tsx`
 
-## Fase 1 · Fundação ✅ (concluída)
+- [x] Fase 3d: Correção das Ações Financeiras (Sincronização n8n)
+  - [x] Renomear `new_due_date` para `due_date` no `useFinancialActions.ts`
+  - [x] Incluir `value`, `description` e dados do cliente no payload de `postpone`
+  - [x] Refatorar `handleSave` no `PaymentDetailDrawer.tsx` para usar `execute('postpone')`
 
-| #    | Tarefa                                                                                                   | Status |
-| ---- | -------------------------------------------------------------------------------------------------------- | ------ |
-| 1.1  | Inicializar Vite + React + TypeScript                                                                    | ✅     |
-| 1.2  | Instalar Tailwind CSS v4 via `@tailwindcss/vite`                                                         | ✅     |
-| 1.3  | Instalar dependências: `react-router-dom`, `lucide-react`, `clsx`                                        | ✅     |
-| 1.4  | Configurar tema premium Dark Mode com design tokens CSS                                                  | ✅     |
-| 1.5  | Implementar Glassmorphism (`.glass`, `glow-active`, `gradient-text`)                                     | ✅     |
-| 1.6  | Criar `AppShell` (layout raiz com Sidebar + header + Outlet)                                             | ✅     |
-| 1.7  | Criar `Sidebar` com navegação: Dashboard, Comercial (Leads/Pipeline), Operação, Financeiro, Universidade | ✅     |
-| 1.8  | Criar rotas base com `react-router-dom`                                                                  | ✅     |
-| 1.9  | Criar `DashboardPage` com KPI cards placeholder                                                          | ✅     |
-| 1.10 | Sidebar colapsável (toggle)                                                                              | ✅     |
-
----
-
-## Fase 2 · Core CRM (em andamento)
-
-| #   | Tarefa                                                                | Status |
-| --- | --------------------------------------------------------------------- | ------ |
-| 2.1 | Módulo de Leads: listagem, filtros, scoring                           | ✅     |
-| 2.2 | Pipeline Kanban com drag-and-drop                                     | ✅     |
-| 2.3 | Detalhe do Lead / Contato (timeline de atividades)                    | ✅     |
-| 2.4 | Dashboard com gráficos reais (Recharts) — visual Stitch/Glassmorphism | ✅     |
-| 2.5 | Módulo Financeiro: MRR, churn, projeções                              | ⬜     |
-| 2.6 | Módulo Operação: SLA, tarefas, projetos                               | ✅     |
-| 2.7 | Sistema de busca global (⌘K)                                          | ⬜     |
-| 2.8 | Notificações e toast system                                           | ⬜     |
-
-### Supabase · Persistência Real (concluído)
-
-| Item            | Detalhe                                                                                            |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| `useLeads`      | `fetchLeads` usa dados do banco com precedência total (mesmo 0 resultados); `addLead` sem `as any` |
-| `useOperations` | `load` sem guard `if merged.length`; `addProject` sem `as any`; logs claros de erro                |
-| `useDashboard`  | guards `if (data?.length)` removidos; `leadsAtivos` usa count real sem fallback estático           |
-| Schema          | `supabase_operation_schema_REV.sql` — tabelas `projects` + `tasks` com RLS e dados de exemplo      |
-| Verificação     | `test_persistence.mjs` — inserção + validação UUID + limpeza automática                            |
-
-### Timeline de Atividades (2.3) — concluído
-
-| Item                            | Detalhe                                                                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `lead_activities_migration.sql` | Tabela com FK para leads, RLS público, trigger de criação automática, seed para leads existentes |
-| `ActivityType` / `LeadActivity` | Tipos adicionados em `database.types.ts` com entrada no generic `Database`                       |
-| `useLeadActivities.ts`          | Hook com busca tipada, insert optimistic e revert em caso de erro                                |
-| `ActivityTimeline.tsx`          | Componente com ícone/cor por tipo, tempo relativo, textarea + Ctrl+Enter, skeleton               |
-| `SDRQualification.tsx`          | Textarea estático substituído pela `ActivityTimeline` ao vivo                                    |
-
-### SDR Workspace 3 Colunas — concluído
-
-| Item                   | Detalhe                                                                                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ClientDrawer.tsx`     | Estado `chatDraft` + `setChatDraft` para ligar Playbook → Chat via props                                                                                       |
-| `SDRPlaybook.tsx`      | Campo de nicho editável (`nichoOverride`), botão "Usar no Chat" (prop `onUseInChat`), feedback "Copiado!" 2s, import `clsx` do pacote                          |
-| `SDRChat.tsx`          | QUICK_REPLIES com scripts reais (lambda `(name) => string`), `onClick` preenche textarea, aceita prop `draft` + `onDraftChange` para receber texto do Playbook |
-| `SDRQualification.tsx` | Seção Diagnóstico: `input` para Faturamento, `select` para Tamanho do Time, `textarea` para Dores — estado local                                               |
-
----
-
-## Fase 3 · Inteligência & Automação
-
-| #   | Tarefa                                      | Status |
-| --- | ------------------------------------------- | ------ |
-| 3.1 | Universidade Praxis: trilhas de onboarding  | ⬜     |
-| 3.2 | Integração com n8n (webhooks, automações)   | ✅     |
-| 3.3 | IA Assistente (resumo de leads, sugestões)  | ⬜     |
-| 3.4 | Relatórios e exportação                     | ⬜     |
-| 3.5 | Multi-tenant / workspace                    | ⬜     |
-| 3.6 | Ciclo de Vida (Billing & Asaas Integration) | ✅     |
-
----
-
-## Stack Técnico
-
-- **Frontend:** Vite · React 18 · TypeScript · Tailwind CSS v4
-- **Roteamento:** React Router v7
-- **Ícones:** Lucide React
-- **Utilitários:** clsx
-- **Tema:** Dark Mode · Glassmorphism · Indigo/Violet accent
-
-## Convenções
-
-- Componentes em `src/components/`
-- Layout em `src/components/layout/`
-- Páginas em `src/pages/`
-- Hooks em `src/hooks/`
-- Design tokens em `src/index.css` (variáveis CSS)
+- [ ] Fase 5: Portal Nexus (Área do Cliente)
+  - [ ] Fundação da Autenticação Multi-tenant
+  - [ ] Dashboard exclusivo por `client_id`
+  - [ ] Central de Aprovação de Conteúdos

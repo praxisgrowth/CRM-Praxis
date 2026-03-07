@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import type { Project } from '../../lib/database.types'
-import type { NewProjectInput } from '../../hooks/useOperations'
+import type { NewProjectInput, ProjectWithTasks } from '../../hooks/useOperations'
 
 /* ─── Config ─────────────────────────────────────── */
 const STATUSES: { value: Project['status']; label: string; color: string }[] = [
@@ -38,14 +38,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 /* ─── Modal ──────────────────────────────────────── */
 interface Props {
+  project?: ProjectWithTasks
   onClose: () => void
   onSave: (data: NewProjectInput) => Promise<void>
 }
 
-export function NewProjectModal({ onClose, onSave }: Props) {
+export function NewProjectModal({ project, onClose, onSave }: Props) {
   const [form, setForm] = useState<NewProjectInput>({
-    name: '', client_name: '', status: 'ativo',
-    service_type: null, sla_percent: 100, due_date: null,
+    name:         project?.name || '',
+    client_name:  project?.client_name || '',
+    status:       project?.status || 'ativo',
+    service_type: project?.service_type || null,
+    sla_percent:  project?.sla_percent ?? 100,
+    due_date:     project?.due_date || null,
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState('')
@@ -92,8 +97,8 @@ export function NewProjectModal({ onClose, onSave }: Props) {
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(16,185,129,0.07)' }}
         >
           <div>
-            <p className="text-sm font-semibold text-white">Novo Projeto</p>
-            <p className="text-xs text-slate-500 mt-0.5">Cadastrar projeto na operação</p>
+            <p className="text-sm font-semibold text-white">{project ? 'Editar Projeto' : 'Novo Projeto'}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{project ? 'Atualizar dados da operação' : 'Cadastrar projeto na operação'}</p>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
             <X size={16} />
@@ -196,7 +201,7 @@ export function NewProjectModal({ onClose, onSave }: Props) {
               }}
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? 'Salvando…' : 'Criar Projeto'}
+              {saving ? 'Salvando…' : project ? 'Salvar Projeto' : 'Criar Projeto'}
             </button>
           </div>
         </form>

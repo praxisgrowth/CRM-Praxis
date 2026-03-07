@@ -2,16 +2,20 @@ import { useState } from 'react'
 import {
   Users, Search, Filter, Plus,
   ExternalLink, Mail, MapPin,
-  TrendingUp, TrendingDown, Minus
+  TrendingUp, TrendingDown, Minus, Trash2, Edit2
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useClients } from '../hooks/useClients'
-import { NewClientModal } from '../components/clients/NewClientModal'
+import { useAudit } from '../hooks/useAudit'
+import { BillingOnboardingModal } from '../components/pipeline/BillingOnboardingModal'
+import type { Client } from '../lib/database.types'
 
 export function ClientsPage() {
-  const { clients, loading, error, addClient } = useClients()
+  const { clients, loading, error, addClient, deleteClient, updateClient } = useClients()
+  const { logAction } = useAudit()
   const [searchTerm, setSearchTerm]   = useState('')
   const [showNewClient, setShowNewClient] = useState(false)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   const filteredClients = clients.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -180,12 +184,32 @@ export function ClientsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link 
-                        to={`/comercial/clientes/${client.id}`}
-                        className="p-2 inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-400 text-slate-400 transition-all border border-transparent hover:border-cyan-500/30"
-                      >
-                        <ExternalLink size={16} />
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setEditingClient(client)}
+                          className="p-2 inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-400 text-slate-400 transition-all border border-transparent hover:border-cyan-500/30"
+                          title="Editar faturamento/dados"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <Link 
+                          to={`/comercial/clientes/${client.id}`}
+                          className="p-2 inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-400 text-slate-400 transition-all border border-transparent hover:border-cyan-500/30"
+                        >
+                          <ExternalLink size={16} />
+                        </Link>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Excluir cliente ${client.name}?`)) {
+                              await deleteClient(client.id)
+                              await logAction('Delete Client', 'client', client.id, { name: client.name })
+                            }
+                          }}
+                          className="p-2 inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-all border border-transparent hover:border-rose-500/30"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -195,9 +219,47 @@ export function ClientsPage() {
         )}
       </div>
       {showNewClient && (
-        <NewClientModal
+        <BillingOnboardingModal
+          isNew
           onClose={() => setShowNewClient(false)}
-          onSave={addClient}
+          onSave={async (data) => {
+            const newClient = {
+              name: data.name || '',
+              email: data.email || null,
+              phone: data.phone || null,
+              mrr: data.mrr || 0,
+              segment: data.segment || null,
+              cpf_cnpj: data.cpf_cnpj || null,
+              cep: data.cep || null,
+              logradouro: data.logradouro || null,
+              numero: data.numero || null,
+              complemento: data.complemento || null,
+              bairro: data.bairro || null,
+              cidade: data.cidade || null,
+              uf: data.uf || null,
+              health_score: 100,
+              trend: 'flat' as const,
+              avatar: '' as string,
+              asaas_id: null
+            }
+            await addClient(newClient)
+            await logAction('Create Client', 'client', 'new', newClient as unknown as Record<string, unknown>)
+            setShowNewClient(false)
+          }}
+        />
+      )}
+
+      {editingClient && (
+        <BillingOnboardingModal
+          clientId={editingClient.id}
+          companyName={editingClient.name}
+          initialData={editingClient}
+          onClose={() => setEditingClient(null)}
+          onSave={async (data) => {
+            await updateClient(editingClient.id, data)
+            await logAction('Update Client', 'client', editingClient.id, data as unknown as Record<string, unknown>)
+            setEditingClient(null)
+          }}
         />
       )}
     </div>

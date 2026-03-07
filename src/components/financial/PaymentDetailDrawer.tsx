@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { X, Edit2, Save, X as XIcon, ExternalLink, Send, Trash2, RotateCcw, Loader2, Trash } from 'lucide-react'
 import type { FinancialPayment } from '../../lib/database.types'
-import { updatePayment, cancelPayment, refundPayment, resendPayment, deletePayment } from '../../hooks/useBilling'
+import { deletePayment } from '../../hooks/useBilling'
+import { useFinancialActions } from '../../hooks/useFinancialActions'
 import { supabase } from '../../lib/supabase'
 import { useAudit } from '../../hooks/useAudit'
 
@@ -54,6 +55,7 @@ function getClientContact(p: FinancialPayment) {
 
 export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
   const { logAction } = useAudit()
+  const { execute } = useFinancialActions()
   const [editMode,   setEditMode]   = useState(false)
   const [desc,       setDesc]       = useState('')
   const [valueFmt,   setValueFmt]   = useState('R$ 0,00')
@@ -96,7 +98,7 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     setLoading(true); setError(null)
     try {
       if (p.asaas_id) {
-        await updatePayment({
+        const ok = await execute('postpone', {
           asaas_id:     p.asaas_id,
           payment_id:   p.id,
           due_date:     dueDate,
@@ -106,16 +108,16 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
           client_phone: phone,
           client_email: email,
         })
+        if (!ok) throw new Error('Falha ao atualizar no Asaas.')
       } else {
-        // Update local only if no Asaas ID
         const { error: upErr } = await (supabase as any)
           .from('financial_payments')
           .update({ description: desc.trim(), value, due_date: dueDate })
           .eq('id', p.id)
         if (upErr) throw upErr
       }
-      
-      await logAction('Update Payment', 'financial_payment', p.id, { 
+
+      await logAction('Update Payment', 'financial_payment', p.id, {
         old: { description: p.description, value: p.value, due_date: p.due_date },
         new: { description: desc.trim(), value, due_date: dueDate }
       })
@@ -130,26 +132,30 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     if (!p.asaas_id) return
     if (confirming !== 'cancel') { setConfirming('cancel'); return }
     setLoading(true); setError(null)
-    try {
-      await cancelPayment(p.asaas_id, p.id, p.client_name ?? '', phone, email, p.description)
+    const ok = await execute('cancel', { asaas_id: p.asaas_id, payment_id: p.id })
+    setLoading(false)
+    if (ok) {
       await logAction('Cancel Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
       onSuccess('Cobrança cancelada! Cliente notificado.'); onClose()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao cancelar.')
-    } finally { setLoading(false) }
+    } else {
+      setError('Erro ao cancelar. Tente novamente.')
+      setConfirming(null)
+    }
   }
 
   async function handleRefund() {
     if (!p.asaas_id) return
     if (confirming !== 'refund') { setConfirming('refund'); return }
     setLoading(true); setError(null)
-    try {
-      await refundPayment(p.asaas_id, p.id, p.client_name ?? '', phone, email, p.description)
+    const ok = await execute('refund', { asaas_id: p.asaas_id, payment_id: p.id })
+    setLoading(false)
+    if (ok) {
       await logAction('Refund Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
       onSuccess('Cobrança estornada! Cliente notificado.'); onClose()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao estornar.')
-    } finally { setLoading(false) }
+    } else {
+      setError('Erro ao estornar. Tente novamente.')
+      setConfirming(null)
+    }
   }
 
   async function handleDelete() {
@@ -164,10 +170,15 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     } finally { setLoading(false) }
   }
 
-  function handleResend() {
+  async function handleResend() {
     if (!p.asaas_id) return
-    resendPayment(p.asaas_id)
-    onSuccess('2ª via reenviada pelo Asaas!')
+    const ok = await execute('resend', { asaas_id: p.asaas_id, payment_id: p.id })
+    if (ok) {
+      await logAction('Resend Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
+      onSuccess('2ª via reenviada pelo Asaas!')
+    } else {
+      setError('Erro ao reenviar. Tente novamente.')
+    }
   }
 
   return (

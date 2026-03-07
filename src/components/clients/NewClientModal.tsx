@@ -34,6 +34,10 @@ export function NewClientModal({ onClose, onSave }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) { setErr('O nome do cliente é obrigatório.'); return }
+    if (phone && phone.replace(/\D/g, '').length < 10) {
+      setErr('Telefone inválido — informe o DDD + número (mínimo 10 dígitos).')
+      return
+    }
     setSaving(true); setErr('')
     try {
       await onSave({

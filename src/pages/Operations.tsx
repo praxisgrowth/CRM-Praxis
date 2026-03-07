@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import {
   Plus, AlertCircle, RefreshCw, Calendar, CheckCircle2,
-  Circle, Loader2, ChevronRight, Briefcase,
+  Circle, Loader2, ChevronRight, Briefcase, Edit2, X,
 } from 'lucide-react'
+import { useAudit } from '../hooks/useAudit'
 import { useOperations } from '../hooks/useOperations'
 import { NewProjectModal } from '../components/operations/NewProjectModal'
 import type { ProjectWithTasks } from '../hooks/useOperations'
@@ -119,7 +120,7 @@ function TaskItem({ task }: { task: Task }) {
 }
 
 /* ─── Project card ───────────────────────────────── */
-function ProjectCard({ project }: { project: ProjectWithTasks }) {
+function ProjectCard({ project, onEdit, onDelete }: { project: ProjectWithTasks; onEdit: () => void; onDelete: () => void }) {
   const status   = STATUS_CONFIG[project.status]
   const sColor   = slaColor(project.sla_percent)
   const due      = formatDueDate(project.due_date)
@@ -129,15 +130,32 @@ function ProjectCard({ project }: { project: ProjectWithTasks }) {
 
   return (
     <div
-      className="glass rounded-2xl flex flex-col overflow-hidden transition-all duration-200 hover:border-white/10"
+      className="glass rounded-2xl flex flex-col overflow-hidden transition-all duration-200 hover:border-white/10 group"
       style={{ borderColor: `${status.color}20` }}
     >
       {/* Card header */}
-      <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
+      <div className="px-5 pt-5 pb-4 flex flex-col gap-3 relative">
+        {/* Actions hover */}
+        <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+            title="Editar Projeto"
+          >
+            <Edit2 size={13} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all"
+            title="Excluir Projeto"
+          >
+            <X size={13} />
+          </button>
+        </div>
 
         {/* Client row */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div
               className="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-bold flex-shrink-0"
               style={{ background: `${status.color}20`, color: status.color }}
@@ -263,9 +281,11 @@ function ProjectCard({ project }: { project: ProjectWithTasks }) {
 
 /* ─── Page ───────────────────────────────────────── */
 export function OperationsPage() {
-  const { projects, loading, error, refetch, addProject } = useOperations()
+  const { projects, loading, error, refetch, addProject, updateProject, deleteProject } = useOperations()
+  const { logAction } = useAudit()
   const [statusFilter, setStatusFilter]   = useState<StatusFilter>('todos')
   const [showNewProject, setShowNewProject] = useState(false)
+  const [editingProject, setEditingProject] = useState<ProjectWithTasks | null>(null)
 
   /* Filtered projects */
   const filtered = useMemo(() =>
@@ -402,18 +422,43 @@ export function OperationsPage() {
             : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map(project => (
-                  <ProjectCard key={project.id} project={project} />
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onEdit={() => setEditingProject(project)}
+                    onDelete={async () => {
+                      if (confirm(`Excluir projeto "${project.name}"?`)) {
+                        await deleteProject(project.id)
+                        await logAction('Delete Project', 'project', project.id, { name: project.name })
+                      }
+                    }}
+                  />
                 ))}
               </div>
             )
         }
       </div>
 
-      {/* New Project Modal */}
+      {/* Modals */}
       {showNewProject && (
         <NewProjectModal
           onClose={() => setShowNewProject(false)}
-          onSave={addProject}
+          onSave={async (data) => {
+            await addProject(data)
+            await logAction('Create Project', 'project', 'new', data as unknown as Record<string, unknown>)
+          }}
+        />
+      )}
+
+      {editingProject && (
+        <NewProjectModal
+          project={editingProject}
+          onClose={() => setEditingProject(null)}
+          onSave={async (data) => {
+            await updateProject(editingProject.id, data)
+            await logAction('Update Project', 'project', editingProject.id, data as unknown as Record<string, unknown>)
+            setEditingProject(null)
+          }}
         />
       )}
 

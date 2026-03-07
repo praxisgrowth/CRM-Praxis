@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "instanceId": "80860368a417688229babb4eb97268d0670984180415302636a0846506376569"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sandbox.asaas.com/api/v3/payments/{{ $json.body.asaas_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjdiNDZiMDFiLWJjOGItNGFhOC05NmY2LThlMTU1YTczNDE2YTo6JGFhY2hfZGY1NTY0MjUtZjAzZi00OWFhLWFkNDYtMTIwN2MzNTg0NTgx"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e44b9ebc-8182-4411-9922-8833cc44dd11",
+      "name": "Asaas — Buscar Cobrança (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        5360,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://xmfdrtrwpymgkvaeeyyq.supabase.co/rest/v1/clients?asaas_id=eq.{{ $json.customer }}&select=name,email,phone",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZmRydHJ3cHltZ2t2YWVleXlxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI1NTMxMywiZXhwIjoyMDg3ODMxMzEzfQ.sqIZZjxQe5ohSUbxTf8vZc6efB_ohVewYZn2PU6Qz3Q"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f55c0fcc-9293-4552-8844-9955dd66ee22",
+      "name": "Supabase — Buscar Contatos Cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        5580,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payment = $('Asaas — Buscar Cobrança (API)').first().json;\nconst client = $input.first().json; // Fix: removed [0]\n\nconst phone = String(client.phone || '').replace(/\\D/g, '');\nconst phoneFormatted = phone.startsWith('55') ? phone : `55${phone}`;\n\nconst valueFormatted = Number(payment.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 });\n\nconst message = `Olá, ${client.name}! 💳 Segue a 2ª via da sua fatura de *R$ ${valueFormatted}* com vencimento em *${payment.dueDate}*. \\n\\nAcesse o link de pagamento: ${payment.invoiceUrl}\\n\\nEquipe Praxis Growth`;\n\nreturn [{ json: { phone: phoneFormatted, name: client.name, email: client.email, message, invoice_url: payment.invoiceUrl } }];"
+      },
+      "id": "g66d1fdd-0304-4663-9955-aa66ee77ff33",
+      "name": "Preparar Notificação (2ª Via/Resend)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5800,
+        760
+      ]
+    }
+  ],
+  "connections": {
+    "Asaas — Buscar Cobrança (API)": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Buscar Contatos Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Buscar Contatos Cliente": {
+      "main": [
+        [
+          {
+            "node": "Preparar Notificação (2ª Via/Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

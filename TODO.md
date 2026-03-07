@@ -4,21 +4,27 @@
 
 ---
 
-## � Prioridade Imediata (Fase 3: Gestão de Clientes & Ciclo de Vida)
+## Prioridade Imediata (Fase 3: Gestão de Clientes & Ciclo de Vida)
 
 Ações necessárias para destravar o módulo financeiro e operacional.
 
 - [ ] **Módulo de Clientes (Base Central)**:
-  - Criar aba "Clientes" que lista registros da tabela `clients`.
-  - Formulário de Onboarding Completo (CPF/CNPJ, Endereço, Faturamento).
-- [ ] **Automação de Conversão**:
-  - Programar botão "Converter em Cliente" no Lead Drawer.
-  - Gatilho Kanban: Conversão automática ao mover Deal para "Fechado".
+- [x] **Módulo de Clientes — Refinamento de Onboarding**:
+  - [x] Adicionar validação de CEP e preenchimento automático (ViaCEP).
+  - [x] Garantir que CPF/CNPJ e Endereço sejam obrigatórios para sincronização.
+- [ ] **Módulo Financeiro — Controle de Sincronização**:
+  - [ ] [NEW] Implementar toggle "Sincronizar com Asaas" na criação de cobranças/assinaturas.
+  - [ ] [NEW] Permitir criação de cobranças apenas no banco de dados CRM (Manual).
+- [x] **Automação de Conversão**:
+  - [x] Vincular botão "Converter em Cliente" ao gatilho de criação no Asaas (via n8n).
+  - [x] Debugar e finalizar workflow de disparos de cobrança.
 - [ ] **Pipeline Dinâmico**:
-  - Vincular seletor de estágio do Lead diretamente às colunas do Kanban.
-- [ ] **Controle Financeiro (Asaas Control)**:
-  - Botões de Cancelamento, Estorno e Alteração de Vencimento no CRM.
-  - Botão de "Segunda Via" (Reenviar Notificação).
+  - [ ] Vincular seletor de estágio do Lead diretamente às colunas do Kanban.
+- [x] **Controle Financeiro (Asaas Control)**:
+  - [x] Implementar funcionalidade de "Cobrança Duplicada".
+  - [x] Histórico de pagamentos por cliente.
+  - [x] Botões de Cancelamento, Estorno e Alteração de Vencimento no CRM.
+  - [x] Botão de "Segunda Via" (Reenviar Notificação).
 
 ---
 
@@ -28,10 +34,10 @@ Interface de alta conversão focada em velocidade e dados.
 
 ### 1.1 SDR Multi-Column Workspace
 
-- [ ] **Interface de 3 Colunas**:
-  - **Esquerda (Playbook)**: Timeline do dia + Scripts Dinâmicos com variáveis (`{{nome}}`, `{{nicho}}`).
-  - **Central (Omnichannel)**: Interface de chat (WhatsApp/Instagram) integrada com botões de "Resposta Rápida".
-  - **Direita (Qualificação)**: Formulários customizados (Faturamento, Time, Dores) e Feed de Atividades de redes sociais.
+- [x] **Interface de 3 Colunas**:
+  - [x] **Esquerda (Playbook)**: Timeline do dia + Scripts Dinâmicos com variáveis (`{{nome}}`, `{{nicho}}`).
+  - [x] **Central (Omnichannel)**: Interface de chat (WhatsApp/Instagram) integrated com botões de "Resposta Rápida".
+  - [x] **Direita (Qualificação)**: Formulários customizados (Faturamento, Time, Dores) e Feed de Atividades de redes sociais.
 
 ### 1.2 Kanban Inteligente (Visual 2.0)
 
@@ -51,10 +57,10 @@ Interface de alta conversão focada em velocidade e dados.
 
 - [ ] **Kanban de Urgência (Ops)**: Organização por deadlines e prioridade crítica.
 - [x] **Visão 360° (Client Drawer)**: Abre ao clicar na linha/nome do lead (slide-over).
-- [ ] **SDR Workspace (Tríplice Visualização)**:
-  - Coluna 1 (Playbook): Checklist D1-D6 + Scripts Dinâmicos.
-  - Coluna 2 (Chat Direto): Interface Omnichannel + Respostas Rápidas.
-  - Coluna 3 (CRM Data): Faturamento, Equipe e Botão API4com.
+- [x] **SDR Workspace (Tríplice Visualização)**:
+  - [x] Coluna 1 (Playbook): Checklist D1-D6 + Scripts Dinâmicos.
+  - [x] Coluna 2 (Chat Direto): Interface Omnichannel + Respostas Rápidas.
+  - [x] Coluna 3 (CRM Data): Faturamento, Equipe e Botão API4com.
 - [ ] **Vínculo Lead-Anúncio**: Exibir UTM/Criativo de origem no card.
 - [ ] **Transcrição & Nota IA**: Integração Whisper + Claude para auditoria de calls.
 - [ ] **Workflow Canvas (React Flow)**: Interface visual para desenhar réguas de automação.
@@ -152,8 +158,8 @@ Interface de alta conversão focada em velocidade e dados.
 - [x] **Global Drag & Drop**: Habilitar movimentação total no Kanban.
 - [x] **Client Drawer**: Slide-over para evitar perda de contexto.
 - [ ] **Financeiro (Fase 2 - Outbound)**: Configurar n8n para polling de novas cobranças. [EM PROGRESSO]
-- [ ] **Ativar Botões**: "Novo Lead" e "Novo Projeto" (validar persistência real no Supabase).
-- [ ] **Configurações**: Corrigir persistência do formulário e upload de logotipo.
+- [x] **Ativar Botões**: "Novo Lead" e "Novo Projeto" (validar persistência real no Supabase).
+- [x] **Configurações**: Corrigir persistência do formulário e upload de logotipo.
 - [ ] **Dropdown de Serviços**: Substituir texto livre por lista pré-definida no Pipeline.
 
 ---

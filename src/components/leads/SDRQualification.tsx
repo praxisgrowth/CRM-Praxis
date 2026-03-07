@@ -2,6 +2,7 @@ import { User, Mail, Phone, Globe, Briefcase, Target, Users, TrendingUp, Clock, 
 import { useState, useEffect } from 'react'
 import type { Lead } from '../../lib/database.types'
 import { supabase } from '../../lib/supabase'
+import { useAudit } from '../../hooks/useAudit'
 import { ActivityTimeline } from './ActivityTimeline'
 import { PIPELINE_STAGES } from '../../config/pipeline'
 import { FinancialCard } from '../financial/FinancialCard'
@@ -32,6 +33,7 @@ function CRMField({ label, value, icon: Icon }: FieldProps) {
 const TEAM_SIZE_OPTIONS = ['1–5 pessoas', '6–20 pessoas', '21–50 pessoas', '51–200 pessoas', '200+ pessoas']
 
 export function SDRQualification({ lead, onConverted }: Props) {
+  const { logAction } = useAudit()
   const [faturamento,   setFaturamento]   = useState(lead.faturamento   ?? '')
   const [teamSize,      setTeamSize]      = useState(lead.team_size      ?? '')
   const [dores,         setDores]         = useState(lead.dores          ?? '')
@@ -46,14 +48,26 @@ export function SDRQualification({ lead, onConverted }: Props) {
     setConverting(true)
     setConvertError(null)
     try {
-      // 1. Criar cliente
+      // 1. Verificar se já existe cliente com esse nome para evitar duplicação
+      const { data: existing } = await (supabase as any)
+        .from('clients')
+        .select('id')
+        .eq('name', lead.name)
+        .maybeSingle()
+
+      if (existing) {
+        onConverted?.(existing.id, lead.name)
+        return
+      }
+
+      // 2. Criar cliente com dados pre-populados do Lead
       const { data, error: insertErr } = await (supabase as any)
         .from('clients')
         .insert({
           name:         lead.name,
           email:        lead.email,
           phone:        lead.phone,
-          mrr:          0,
+          mrr:          lead.value || 0,
           health_score: 50,
           trend:        'flat',
           avatar:       lead.name.charAt(0).toUpperCase(),
@@ -64,13 +78,16 @@ export function SDRQualification({ lead, onConverted }: Props) {
         .single()
       if (insertErr) throw new Error(insertErr.message)
 
-      // 2. Marcar lead como fechado
+      // 3. Logar a ação de auditoria
+      await logAction('Convert Lead', 'lead', lead.id, { client_id: data.id, client_name: data.name })
+
+      // 4. Marcar lead como fechado (se não estiver)
       await (supabase as any)
         .from('leads')
         .update({ stage: 'fechado' })
         .eq('id', lead.id)
 
-      // 3. Abrir modal de onboarding
+      // 5. Abrir modal de onboarding
       onConverted?.(data.id, data.name)
     } catch (err) {
       setConvertError(err instanceof Error ? err.message : 'Erro ao converter.')
