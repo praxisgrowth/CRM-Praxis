@@ -11,8 +11,13 @@ import {
   DollarSign,
   User,
   FileText,
+  Pencil,
+  Check,
+  X as CloseIcon,
+  Hash,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAudit } from '../hooks/useAudit'
 import type { Client } from '../lib/database.types'
 import { FinancialCard } from '../components/financial/FinancialCard'
 
@@ -31,6 +36,13 @@ export function ClientDetail() {
   const [client,  setClient]  = useState<Client | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const { logAction } = useAudit()
+
+  // Edit states
+  const [editMode, setEditMode] = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [saveErr,  setSaveErr]  = useState('')
+  const [form,     setForm]     = useState<Partial<Client>>({})
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return }
@@ -47,6 +59,7 @@ export function ClientDetail() {
         setNotFound(true)
       } else {
         setClient(data as Client)
+        setForm(data as Client)
       }
       setLoading(false)
     }
@@ -80,6 +93,29 @@ export function ClientDetail() {
     )
   }
 
+  async function handleSave() {
+    if (!client) return
+    if (form.phone && (form.phone as string).replace(/\D/g, '').length < 10) {
+      setSaveErr('Telefone inválido — informe o DDD + número (mínimo 10 dígitos).')
+      return
+    }
+    setSaveErr('')
+    setSaving(true)
+    const { error: err } = await (supabase as any)
+      .from('clients')
+      .update(form)
+      .eq('id', client.id)
+
+    if (!err) {
+      setClient({ ...client, ...form } as Client)
+      logAction('Update Client', 'client', client.id, form as any)
+      setEditMode(false)
+    } else {
+      console.error('[ClientDetail] Erro ao salvar:', err.message)
+    }
+    setSaving(false)
+  }
+
   const hColor = healthColor(client.health_score)
 
   return (
@@ -94,33 +130,86 @@ export function ClientDetail() {
         </Link>
 
         <div className="flex flex-wrap items-end justify-between gap-5">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-indigo-300 flex-shrink-0"
               style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}
             >
-              {client.name.charAt(0).toUpperCase()}
+              {(form.name || client.name).charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white leading-tight">{client.name}</h1>
-              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                {client.segment && (
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                    style={{ background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}
-                  >
-                    {client.segment}
-                  </span>
-                )}
-                <span className="text-xs text-slate-500 flex items-center gap-1">
-                  <Clock size={12} />
-                  Cliente desde {new Date(client.created_at).toLocaleDateString('pt-BR')}
-                </span>
-              </div>
+            <div className="flex-1 min-w-0">
+              {editMode ? (
+                <div className="space-y-2">
+                  <input
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-lg font-bold text-white outline-none focus:border-indigo-500/50"
+                    value={form.name || ''}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    placeholder="Nome do Cliente"
+                  />
+                  <input
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-xs text-indigo-300 outline-none focus:border-indigo-500/50"
+                    value={form.segment || ''}
+                    onChange={e => setForm({ ...form, segment: e.target.value })}
+                    placeholder="Segmento (ex: SaaS, Varejo)"
+                  />
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold text-white leading-tight">{client.name}</h1>
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    {client.segment && (
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                        style={{ background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}
+                      >
+                        {client.segment}
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Clock size={12} />
+                      Cliente desde {new Date(client.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1">
+            {saveErr && editMode && (
+              <p className="text-xs text-red-400 text-right">{saveErr}</p>
+            )}
+            <div className="flex items-center gap-2">
+            {editMode ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 text-sm font-bold hover:bg-green-500/20 transition-all disabled:opacity-50"
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  Salvar
+                </button>
+                <button
+                  onClick={() => { setEditMode(false); setForm(client); setSaveErr('') }}
+                  className="p-2 rounded-xl bg-white/5 text-slate-400 border border-white/10 hover:text-white transition-all"
+                >
+                  <CloseIcon size={16} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-400 border border-white/10 text-sm font-semibold hover:text-white transition-all"
+              >
+                <Pencil size={14} />
+                Editar Perfil
+              </button>
+            )}
           </div>
         </div>
       </div>
+    </div>
 
       {/* ── KPI Strip ────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -142,7 +231,7 @@ export function ClientDetail() {
           </p>
           <p className="text-lg font-bold" style={{ color: hColor }}>{client.health_score}%</p>
         </div>
-        {client.cpf_cnpj && (
+        {!editMode && client.cpf_cnpj && (
           <div
             className="rounded-xl px-4 py-3"
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
@@ -167,21 +256,64 @@ export function ClientDetail() {
               Informações de Contato
             </h3>
             <div className="space-y-3">
-              <ContactRow icon={Mail} label="E-mail" value={client.email} />
-              <ContactRow icon={Phone} label="Telefone" value={client.phone} />
-              {(client.cidade || client.uf) && (
-                <ContactRow
-                  icon={MapPin}
-                  label="Localização"
-                  value={[client.cidade, client.uf].filter(Boolean).join(' – ')}
-                />
-              )}
-              {client.logradouro && (
-                <ContactRow
-                  icon={MapPin}
-                  label="Endereço"
-                  value={[client.logradouro, client.numero, client.complemento].filter(Boolean).join(', ')}
-                />
+              {editMode ? (
+                <>
+                  <EditableContactRow 
+                    icon={Mail} label="E-mail" value={form.email || ''} 
+                    onChange={v => setForm({ ...form, email: v })}
+                  />
+                  <EditableContactRow 
+                    icon={Phone} label="Telefone" value={form.phone || ''} 
+                    onChange={v => setForm({ ...form, phone: v })}
+                  />
+                  <EditableContactRow 
+                    icon={FileText} label="CPF / CNPJ" value={form.cpf_cnpj || ''} 
+                    onChange={v => setForm({ ...form, cpf_cnpj: v })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <EditableContactRow 
+                      icon={MapPin} label="Cidade" value={form.cidade || ''} 
+                      onChange={v => setForm({ ...form, cidade: v })}
+                    />
+                    <EditableContactRow 
+                      icon={MapPin} label="UF" value={form.uf || ''} 
+                      onChange={v => setForm({ ...form, uf: v.toUpperCase() })}
+                    />
+                  </div>
+                  <EditableContactRow 
+                    icon={MapPin} label="Logradouro" value={form.logradouro || ''} 
+                    onChange={v => setForm({ ...form, logradouro: v })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <EditableContactRow 
+                      icon={Hash} label="Nº" value={form.numero || ''} 
+                      onChange={v => setForm({ ...form, numero: v })}
+                    />
+                    <EditableContactRow 
+                      icon={MapPin} label="Compl." value={form.complemento || ''} 
+                      onChange={v => setForm({ ...form, complemento: v })}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <ContactRow icon={Mail} label="E-mail" value={client.email} />
+                  <ContactRow icon={Phone} label="Telefone" value={client.phone} />
+                  {(client.cidade || client.uf) && (
+                    <ContactRow
+                      icon={MapPin}
+                      label="Localização"
+                      value={[client.cidade, client.uf].filter(Boolean).join(' – ')}
+                    />
+                  )}
+                  {client.logradouro && (
+                    <ContactRow
+                      icon={MapPin}
+                      label="Endereço"
+                      value={[client.logradouro, client.numero, client.complemento].filter(Boolean).join(', ')}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -225,6 +357,37 @@ function ContactRow({
       <div className="min-w-0">
         <p className="text-[9px] text-slate-600 uppercase tracking-wide">{label}</p>
         <p className="text-xs text-slate-300 mt-0.5 break-words">{value || 'Não informado'}</p>
+      </div>
+    </div>
+  )
+}
+
+function EditableContactRow({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+}: {
+  icon: React.ElementType
+  label: string
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div
+        className="p-1.5 rounded-lg flex-shrink-0 mt-0.5"
+        style={{ background: 'rgba(255,255,255,0.04)' }}
+      >
+        <Icon size={13} className="text-slate-500" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[9px] text-slate-600 uppercase tracking-wide">{label}</p>
+        <input
+          className="w-full bg-white/5 border border-white/10 rounded-md px-2 py-1 text-xs text-white outline-none focus:border-indigo-500/50 mt-1"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+        />
       </div>
     </div>
   )

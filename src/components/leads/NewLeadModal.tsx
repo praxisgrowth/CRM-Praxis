@@ -49,6 +49,10 @@ export function NewLeadModal({ onClose, onSave }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) { setErr('O nome do lead é obrigatório.'); return }
+    if (form.phone && form.phone.replace(/\D/g, '').length < 10) {
+      setErr('Telefone inválido — informe o DDD + número (mínimo 10 dígitos).')
+      return
+    }
     setSaving(true); setErr('')
     try {
       await onSave(form)

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { X, Loader2, CreditCard, MapPin, Mail, Phone, Hash } from 'lucide-react'
+import { X, Loader2, CreditCard, MapPin, Mail, Phone, Hash, Briefcase, Users, TrendingUp } from 'lucide-react'
 import type { Client } from '../../lib/database.types'
 
 interface Props {
-  dealId: string
-  companyName: string
+  clientId?: string
+  companyName?: string
   initialData?: Partial<Client>
+  isNew?: boolean
   onClose: () => void
   onSave: (data: Partial<Client>) => Promise<void>
 }
@@ -20,7 +21,7 @@ const FIELD_FOCUS = {
   background: 'rgba(0,210,255,0.06)',
 }
 
-function Field({ label, icon: Icon, children }: { label: string; icon: any; children: React.ReactNode }) {
+function Field({ label, icon: Icon, children }: { label: string; icon: React.ComponentType<{ size?: number; className?: string }>; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -32,18 +33,21 @@ function Field({ label, icon: Icon, children }: { label: string; icon: any; chil
   )
 }
 
-export function BillingOnboardingModal({ dealId: _dealId, companyName, initialData, onClose, onSave }: Props) {
+export function BillingOnboardingModal({ companyName, initialData, isNew, onClose, onSave }: Props) {
   const [form, setForm] = useState<Partial<Client>>({
-    email: initialData?.email || '',
-    phone: initialData?.phone || '',
-    cpf_cnpj: '',
-    cep: '',
-    logradouro: '',
-    numero: '',
-    bairro: '',
-    cidade: '',
-    uf: '',
-    ...initialData
+    name:       initialData?.name || companyName || '',
+    email:      initialData?.email || '',
+    phone:      initialData?.phone || '',
+    segment:    initialData?.segment || '',
+    mrr:        initialData?.mrr || 0,
+    cpf_cnpj:   initialData?.cpf_cnpj || '',
+    cep:        initialData?.cep || '',
+    logradouro: initialData?.logradouro || '',
+    numero:     initialData?.numero || '',
+    complemento: initialData?.complemento || '',
+    bairro:     initialData?.bairro || '',
+    cidade:     initialData?.cidade || '',
+    uf:         initialData?.uf || '',
   })
   
   const [saving, setSaving] = useState(false)
@@ -53,18 +57,22 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError,   setCepError]   = useState('')
 
-  function update(key: keyof Client, val: any) {
+  function update(key: keyof Client, val: string | number | null) {
     setForm(f => ({ ...f, [key]: val }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.cpf_cnpj || !form.email) {
+    if (!form.name || !form.cpf_cnpj || !form.email) {
       setShowRequired(true)
-      setErr('CPF/CNPJ e Email são obrigatórios para prosseguir.')
+      setErr('Nome, CPF/CNPJ e Email são obrigatórios.')
       return
     }
     setShowRequired(false)
+    if (form.phone && (form.phone as string).replace(/\D/g, '').length < 10) {
+      setErr('Telefone inválido — informe o DDD + número (mínimo 10 dígitos).')
+      return
+    }
     setSaving(true)
     setErr('')
     try {
@@ -128,9 +136,11 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
         {/* Header */}
         <div className="px-6 py-5 border-b border-white/5 bg-cyan-500/5 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-white">Configurar Faturamento</h3>
+            <h3 className="text-lg font-bold text-white">{isNew ? 'Novo Cliente' : 'Configurar Faturamento'}</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Finalizando a conversão de <span className="text-cyan-400 font-semibold">{companyName}</span>
+              {isNew ? 'Cadastro completo de novo cliente' : (
+                <>Finalizando a conversão de <span className="text-cyan-400 font-semibold">{form.name || companyName}</span></>
+              )}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-600 hover:text-slate-400 transition-colors">
@@ -138,7 +148,45 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+          {/* Sessão 0: Identidade (se novo) */}
+          {(isNew || !companyName) && (
+            <div className="space-y-4 pb-4 border-b border-white/5">
+              <Field label="Nome da Empresa / Cliente *" icon={Briefcase}>
+                <input 
+                  className={FIELD}
+                  style={inputStyle('name')}
+                  placeholder="ex: Praxis Growth"
+                  value={form.name || ''}
+                  onChange={e => update('name', e.target.value)}
+                  onFocus={() => setFocusField('name')}
+                  onBlur={() => setFocusField('')}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Segmento" icon={Users}>
+                  <input 
+                    className={FIELD}
+                    style={inputStyle('segment')}
+                    placeholder="SaaS, E-commerce..."
+                    value={form.segment || ''}
+                    onChange={e => update('segment', e.target.value)}
+                  />
+                </Field>
+                <Field label="MRR (Valor Mensal)" icon={TrendingUp}>
+                  <input 
+                    className={FIELD}
+                    style={inputStyle('mrr')}
+                    type="number"
+                    placeholder="0.00"
+                    value={form.mrr || ''}
+                    onChange={e => update('mrr', parseFloat(e.target.value) || 0)}
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
+
           {/* Sessão 1: Fiscal */}
           <div className="grid grid-cols-2 gap-4">
             <Field label="CPF ou CNPJ *" icon={CreditCard}>
@@ -218,6 +266,22 @@ export function BillingOnboardingModal({ dealId: _dealId, companyName, initialDa
                 />
               </Field>
               <div className="col-span-2">
+                <Field label="Complemento" icon={MapPin}>
+                  <input 
+                    className={FIELD}
+                    style={inputStyle('complemento')}
+                    placeholder="Apt, Bloco, etc."
+                    value={form.complemento || ''}
+                    onChange={e => update('complemento', e.target.value)}
+                    onFocus={() => setFocusField('complemento')}
+                    onBlur={() => setFocusField('')}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3">
                 <Field label="Bairro" icon={MapPin}>
                   <input 
                     className={FIELD}
