@@ -1,7 +1,6 @@
 export type Trend = 'up' | 'down' | 'flat'
 
 export type PipelineStage = Lead['stage']
-export type Priority      = 'baixa' | 'media' | 'alta'
 
 export interface PipelineDeal {
   id: string
@@ -169,7 +168,8 @@ export interface FinancialMRREntry {
 }
 
 export type ProjectStatus = 'ativo' | 'pausado' | 'concluido' | 'atrasado'
-export type TaskStatus    = 'pendente' | 'em_andamento' | 'concluida'
+export type TaskStatus    = 'todo' | 'in_progress' | 'waiting_client' | 'done' | 'blocked'
+export type Priority      = 'baixa' | 'media' | 'alta' | 'urgente'
 
 export interface Project {
   id: string
@@ -185,13 +185,58 @@ export interface Project {
 
 export interface Task {
   id: string
-  project_id: string
+  project_id: string | null
+  client_id: string | null
+  template_id: string | null
   title: string
+  description: string | null
   status: TaskStatus
   priority: Priority
+  assignee_id: string | null
   due_date: string | null
+  deadline: string | null
+  estimated_hours: number
+  actual_hours: number
+  current_timer_start: string | null
+  depends_on_id: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ProjectTemplate {
+  id: string
+  service_type: string
+  task_number: number
+  title: string
+  type: string
+  sla_days: number
+  depends_on_task_number: number | null
+  depends_on_id: string | null
+  created_at: string
+}
+
+export interface TaskChecklist {
+  id: string
+  task_id: string
+  title: string
+  is_completed: boolean
+  created_at: string
+}
+
+export interface TaskComment {
+  id: string
+  task_id: string
+  body: string
+  author: string
+  created_at: string
+}
+
+export interface TaskAttachment {
+  id: string
+  task_id: string
+  name: string
+  url: string
+  created_at: string
 }
 
 // ─── Nexus types ──────────────────────────────────────────────
@@ -292,6 +337,26 @@ export interface Database {
         Row: Task
         Insert: Omit<Task, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Task, 'id' | 'created_at'>>
+      }
+      project_templates: {
+        Row: ProjectTemplate
+        Insert: Omit<ProjectTemplate, 'id' | 'created_at'>
+        Update: Partial<Omit<ProjectTemplate, 'id' | 'created_at'>>
+      }
+      task_checklists: {
+        Row: TaskChecklist
+        Insert: Omit<TaskChecklist, 'id' | 'created_at'>
+        Update: Partial<Omit<TaskChecklist, 'id' | 'created_at'>>
+      }
+      task_comments: {
+        Row: TaskComment
+        Insert: Omit<TaskComment, 'id' | 'created_at'>
+        Update: Partial<Omit<TaskComment, 'id' | 'created_at'>>
+      }
+      task_attachments: {
+        Row: TaskAttachment
+        Insert: Omit<TaskAttachment, 'id' | 'created_at'>
+        Update: Partial<Omit<TaskAttachment, 'id' | 'created_at'>>
       }
       financial_transactions: {
         Row: FinancialTransaction
