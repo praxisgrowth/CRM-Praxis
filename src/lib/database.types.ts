@@ -35,6 +35,7 @@ export interface Lead {
   team_size:   string | null
   dores:       string | null
   // ──────────────────────────────────────────────────────────
+  client_id?: string | null
   created_at: string
   updated_at: string
 }

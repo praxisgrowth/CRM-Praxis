@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
     stage TEXT NOT NULL CHECK (stage IN ('novo', 'qualificado', 'proposta', 'negociacao', 'fechado')),
     score INTEGER DEFAULT 0,
     source TEXT,
+    client_id UUID REFERENCES public.clients(id),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );

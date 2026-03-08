@@ -45,6 +45,10 @@ export function SDRQualification({ lead, onConverted }: Props) {
   const [billingOpen, setBillingOpen] = useState(false)
 
   async function handleConvert() {
+    if (lead.client_id) {
+      setConvertError('Este lead já foi convertido em cliente.')
+      return
+    }
     setConverting(true)
     setConvertError(null)
     try {
@@ -55,40 +59,40 @@ export function SDRQualification({ lead, onConverted }: Props) {
         .eq('name', lead.name)
         .maybeSingle()
 
-      if (existing) {
-        onConverted?.(existing.id, lead.name)
-        return
+      let targetClientId = existing?.id
+
+      if (!targetClientId) {
+        // 2. Criar cliente com dados pre-populados do Lead
+        const { data, error: insertErr } = await (supabase as any)
+          .from('clients')
+          .insert({
+            name:         lead.name,
+            email:        lead.email,
+            phone:        lead.phone,
+            mrr:          lead.value || 0,
+            health_score: 50,
+            trend:        'flat',
+            avatar:       lead.name.charAt(0).toUpperCase(),
+            asaas_id:     null,
+            segment:      null,
+          })
+          .select('id, name')
+          .single()
+        if (insertErr) throw new Error(insertErr.message)
+        targetClientId = data.id
       }
 
-      // 2. Criar cliente com dados pre-populados do Lead
-      const { data, error: insertErr } = await (supabase as any)
-        .from('clients')
-        .insert({
-          name:         lead.name,
-          email:        lead.email,
-          phone:        lead.phone,
-          mrr:          lead.value || 0,
-          health_score: 50,
-          trend:        'flat',
-          avatar:       lead.name.charAt(0).toUpperCase(),
-          asaas_id:     null,
-          segment:      null,
-        })
-        .select('id, name')
-        .single()
-      if (insertErr) throw new Error(insertErr.message)
-
       // 3. Logar a ação de auditoria
-      await logAction('Convert Lead', 'lead', lead.id, { client_id: data.id, client_name: data.name })
+      await logAction('Convert Lead', 'lead', lead.id, { client_id: targetClientId, client_name: lead.name })
 
-      // 4. Marcar lead como fechado (se não estiver)
+      // 4. Marcar lead como fechado E vincular ao client_id
       await (supabase as any)
         .from('leads')
-        .update({ stage: 'fechado' })
+        .update({ stage: 'fechado', client_id: targetClientId })
         .eq('id', lead.id)
 
-      // 5. Abrir modal de onboarding
-      onConverted?.(data.id, data.name)
+      // 5. Notificar sucesso
+      onConverted?.(targetClientId, lead.name)
     } catch (err) {
       setConvertError(err instanceof Error ? err.message : 'Erro ao converter.')
     } finally {
@@ -289,7 +293,7 @@ export function SDRQualification({ lead, onConverted }: Props) {
         )}
         <button
           onClick={handleConvert}
-          disabled={converting || lead.stage === 'fechado'}
+          disabled={converting || !!lead.client_id}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold text-white transition-all duration-200 disabled:opacity-50"
           style={{
             background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -298,7 +302,7 @@ export function SDRQualification({ lead, onConverted }: Props) {
         >
           {converting
             ? <><Loader2 size={12} className="animate-spin" /> Convertendo...</>
-            : <><UserPlus size={12} /> {lead.stage === 'fechado' ? 'Já convertido' : 'Converter em Cliente'}</>
+            : <><UserPlus size={12} /> {lead.client_id ? 'Já convertido' : 'Converter em Cliente'}</>
           }
         </button>
       </div>

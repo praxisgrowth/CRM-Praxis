@@ -12,6 +12,19 @@ const STAGES: { value: Lead['stage']; label: string }[] = [
   { value: 'fechado',    label: 'Fechado'    },
 ]
 
+const SERVICES = [
+  'Gestão de Tráfego',
+  'Social Media',
+  'SEO',
+  'Landing Page',
+  'Automação de Chatbot',
+  'Automação de Chatbot com IA',
+  'Assessoria Comercial Google',
+  'Consultoria Estratégica',
+  'Branding',
+  'Outros',
+]
+
 const SOURCES = ['LinkedIn', 'Indicação', 'Evento', 'Site', 'Outbound', 'Cold Email', 'Outros']
 
 const FIELD = 'w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all duration-200'
@@ -96,9 +109,25 @@ export function NewLeadModal({ onClose, onSave }: Props) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <Field label="Nome *">
+          <Field label="Serviço *">
+            <select
+              className={FIELD}
+              style={s('title')}
+              value={form.title ?? ''}
+              onChange={e => set('title', e.target.value || null)}
+              onFocus={() => setFocus('title')}
+              onBlur={() => setFocus('')}
+            >
+              <option value="" style={{ background: '#0d1422' }}>Selecionar serviço…</option>
+              {SERVICES.map(s => (
+                <option key={s} value={s} style={{ background: '#0d1422' }}>{s}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Nome da Empresa *">
             <input
-              className={FIELD} style={s('name')} autoFocus
+              className={FIELD} style={s('name')}
               placeholder="ex: TechVision Ltda"
               value={form.name}
               onChange={e => set('name', e.target.value)}

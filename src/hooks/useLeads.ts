@@ -17,6 +17,7 @@ export interface NewLeadInput {
   value?:    number
   priority?: Priority | null
   tags?:     string[]
+  client_id?: string | null
 }
 
 export interface UseLeadsResult {
@@ -31,14 +32,14 @@ export interface UseLeadsResult {
 
 /* ─── Fallback ───────────────────────────────────── */
 const FALLBACK_LEADS: Lead[] = [
-  { id: '1', name: 'Construmax Engenharia', email: 'contato@construmax.com', phone: null, stage: 'proposta',    score: 94, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2024-10-15T00:00:00Z', updated_at: '2024-10-15T00:00:00Z' },
-  { id: '2', name: 'FinScale Ltda',         email: 'hello@finscale.io',      phone: null, stage: 'reuniao',     score: 88, source: 'Indicação',  title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2024-11-02T00:00:00Z', updated_at: '2024-11-02T00:00:00Z' },
-  { id: '3', name: 'Agro Dinâmico',         email: 'adm@agrodinamico.com',   phone: null, stage: 'negociacao',  score: 82, source: 'Evento',     title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2024-12-10T00:00:00Z', updated_at: '2024-12-10T00:00:00Z' },
-  { id: '4', name: 'Medbyte Health',        email: 'tech@medbyte.com',       phone: null, stage: 'prospeccao',  score: 71, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2025-01-05T00:00:00Z', updated_at: '2025-01-05T00:00:00Z' },
-  { id: '5', name: 'LogiSmart',             email: 'ops@logismart.com',      phone: null, stage: 'proposta',    score: 67, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2025-01-12T00:00:00Z', updated_at: '2025-01-12T00:00:00Z' },
-  { id: '6', name: 'CityFin',               email: 'cfo@cityfin.com',        phone: null, stage: 'reuniao',     score: 59, source: 'Outbound',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2025-01-20T00:00:00Z', updated_at: '2025-01-20T00:00:00Z' },
-  { id: '7', name: 'Ecopack Brasil',        email: 'eco@ecopack.com',        phone: null, stage: 'prospeccao',  score: 45, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2025-02-01T00:00:00Z', updated_at: '2025-02-01T00:00:00Z' },
-  { id: '8', name: 'Rápido Express',        email: 'ti@rapidoexpress.com',   phone: null, stage: 'prospeccao',  score: 38, source: 'Cold Email', title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, created_at: '2025-02-10T00:00:00Z', updated_at: '2025-02-10T00:00:00Z' },
+  { id: '1', name: 'Construmax Engenharia', email: 'contato@construmax.com', phone: null, stage: 'proposta',    score: 94, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2024-10-15T00:00:00Z', updated_at: '2024-10-15T00:00:00Z' },
+  { id: '2', name: 'FinScale Ltda',         email: 'hello@finscale.io',      phone: null, stage: 'reuniao',     score: 88, source: 'Indicação',  title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2024-11-02T00:00:00Z', updated_at: '2024-11-02T00:00:00Z' },
+  { id: '3', name: 'Agro Dinâmico',         email: 'adm@agrodinamico.com',   phone: null, stage: 'negociacao',  score: 82, source: 'Evento',     title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2024-12-10T00:00:00Z', updated_at: '2024-12-10T00:00:00Z' },
+  { id: '4', name: 'Medbyte Health',        email: 'tech@medbyte.com',       phone: null, stage: 'prospeccao',  score: 71, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2025-01-05T00:00:00Z', updated_at: '2025-01-05T00:00:00Z' },
+  { id: '5', name: 'LogiSmart',             email: 'ops@logismart.com',      phone: null, stage: 'proposta',    score: 67, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2025-01-12T00:00:00Z', updated_at: '2025-01-12T00:00:00Z' },
+  { id: '6', name: 'CityFin',               email: 'cfo@cityfin.com',        phone: null, stage: 'reuniao',     score: 59, source: 'Outbound',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2025-01-20T00:00:00Z', updated_at: '2025-01-20T00:00:00Z' },
+  { id: '7', name: 'Ecopack Brasil',        email: 'eco@ecopack.com',        phone: null, stage: 'prospeccao',  score: 45, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2025-02-01T00:00:00Z', updated_at: '2025-02-01T00:00:00Z' },
+  { id: '8', name: 'Rápido Express',        email: 'ti@rapidoexpress.com',   phone: null, stage: 'prospeccao',  score: 38, source: 'Cold Email', title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, client_id: null, created_at: '2025-02-10T00:00:00Z', updated_at: '2025-02-10T00:00:00Z' },
 ]
 
 /* ─── Hook ───────────────────────────────────────── */
@@ -88,6 +89,7 @@ export function useLeads(): UseLeadsResult {
       priority:    input.priority ?? null,
       company:     input.company ?? null,
       tags:        input.tags ?? [],
+      client_id:   input.client_id ?? null,
       faturamento: null,
       team_size:   null,
       dores:       null,

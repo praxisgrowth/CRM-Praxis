@@ -157,10 +157,11 @@ Interface de alta conversão focada em velocidade e dados.
 
 - [x] **Global Drag & Drop**: Habilitar movimentação total no Kanban.
 - [x] **Client Drawer**: Slide-over para evitar perda de contexto.
-- [ ] **Financeiro (Fase 2 - Outbound)**: Configurar n8n para polling de novas cobranças. [EM PROGRESSO]
-- [x] **Ativar Botões**: "Novo Lead" e "Novo Projeto" (validar persistência real no Supabase).
-- [x] **Configurações**: Corrigir persistência do formulário e upload de logotipo.
-- [ ] **Dropdown de Serviços**: Substituir texto livre por lista pré-definida no Pipeline.
+- [x] **Pipeline Dinâmico**:
+  - [x] Vincular seletor de estágio do Lead diretamente às colunas do Kanban.
+        ..
+- [x] **Impedir dupla conversão de Lead no Pipeline**: Resolvido via `client_id` idempotency.
+- [x] **Dropdown de Serviços**: Substituído texto livre por lista pré-definida no Pipeline e Lead Modal.
 
 ---
 
