@@ -1,8 +1,9 @@
 // src/components/operations/TaskKanbanBoard.tsx
 import { useMemo } from 'react'
 import {
-  DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Lock, GripVertical } from 'lucide-react'

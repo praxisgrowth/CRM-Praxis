@@ -55,6 +55,23 @@ Interface de alta conversão focada em velocidade e dados.
 
 ## 🛠️ Módulo 2 · Operação & Gestão de Projetos
 
+- [ ] **Módulo 2: Gestão de Projetos & Onboarding (NOVO)**:
+  - [ ] **Arquitetura e Banco de Dados**:
+    - [ ] Criar tabelas `project_templates`, `tasks_v2`, `task_checklists`, `task_comments` e `task_attachments`.
+    - [ ] Migrar lógica da antiga tabela `tasks` para a nova estrutura.
+  - [ ] **Visão Geral da Equipe**:
+    - [ ] Implementar `ProjectManagerPage` com toggle Lista/Kanban.
+    - [ ] Criar filtros globais (Responsável, Cliente, Prazo, Status).
+  - [ ] **Time Tracking & Performance**:
+    - [ ] Botão Play/Stop com lógica de `current_timer_start`.
+    - [ ] Cálculo de `actual_hours` vs `estimated_hours`.
+    - [ ] Bloqueio automático ao mudar para status "Aguardando Cliente".
+  - [ ] **Editor de Templates (Admin)**:
+    - [ ] Interface para criar tarefas padrão por tipo de serviço.
+    - [ ] Definição de SLA (dias), prioridade e dependências.
+  - [ ] **Colaboração**:
+    - [ ] Sistema de Checklists internos.
+    - [ ] Feed de comentários e upload de anexos por tarefa.
 - [ ] **Kanban de Urgência (Ops)**: Organização por deadlines e prioridade crítica.
 - [x] **Visão 360° (Client Drawer)**: Abre ao clicar na linha/nome do lead (slide-over).
 - [x] **SDR Workspace (Tríplice Visualização)**:

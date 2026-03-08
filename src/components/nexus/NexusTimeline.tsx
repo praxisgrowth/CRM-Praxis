@@ -10,7 +10,7 @@ import type { ProjectWithTasks } from '../../hooks/useOperations'
 // ─── Helpers ──────────────────────────────────────────────────
 function calcProgress(project: ProjectWithTasks) {
   if (!project.tasks.length) return project.sla_percent
-  const done = project.tasks.filter(t => t.status === 'concluida').length
+  const done = project.tasks.filter(t => t.status === 'done').length
   return Math.round((done / project.tasks.length) * 100)
 }
 
@@ -36,8 +36,8 @@ const STATUS_CFG = {
 // ─── Milestone builder ────────────────────────────────────────
 function buildMilestones(project: ProjectWithTasks) {
   const tasks    = project.tasks
-  const done     = tasks.filter(t => t.status === 'concluida')
-  const running  = tasks.filter(t => t.status === 'em_andamento')
+  const done     = tasks.filter(t => t.status === 'done')
+  const running  = tasks.filter(t => t.status === 'in_progress')
   const progress = calcProgress(project)
 
   return [
@@ -84,8 +84,8 @@ function ProjectTimeline({ project }: { project: ProjectWithTasks }) {
   const cfg        = STATUS_CFG[project.status]
 
   const tasks       = project.tasks
-  const doneTasks   = tasks.filter(t => t.status === 'concluida').length
-  const activeTasks = tasks.filter(t => t.status === 'em_andamento').length
+  const doneTasks   = tasks.filter(t => t.status === 'done').length
+  const activeTasks = tasks.filter(t => t.status === 'in_progress').length
 
   return (
     <div
@@ -256,21 +256,21 @@ function ProjectTimeline({ project }: { project: ProjectWithTasks }) {
                   key={task.id}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium"
                   style={{
-                    background: task.status === 'concluida'    ? 'rgba(16,185,129,0.1)'
-                              : task.status === 'em_andamento' ? 'rgba(59,130,246,0.1)'
+                    background: task.status === 'done'    ? 'rgba(16,185,129,0.1)'
+                              : task.status === 'in_progress' ? 'rgba(59,130,246,0.1)'
                               : 'rgba(255,255,255,0.04)',
-                    color:      task.status === 'concluida'    ? '#34d399'
-                              : task.status === 'em_andamento' ? '#60a5fa'
+                    color:      task.status === 'done'    ? '#34d399'
+                              : task.status === 'in_progress' ? '#60a5fa'
                               : '#475569',
                     border: `1px solid ${
-                      task.status === 'concluida'    ? 'rgba(16,185,129,0.2)'
-                    : task.status === 'em_andamento' ? 'rgba(59,130,246,0.2)'
+                      task.status === 'done'    ? 'rgba(16,185,129,0.2)'
+                    : task.status === 'in_progress' ? 'rgba(59,130,246,0.2)'
                     : 'rgba(255,255,255,0.06)' }`,
                   }}
                 >
-                  {task.status === 'concluida'    && <CheckCircle2 size={9} />}
-                  {task.status === 'em_andamento' && <Clock size={9} />}
-                  {task.status === 'pendente'     && <Circle size={9} />}
+                  {task.status === 'done'    && <CheckCircle2 size={9} />}
+                  {task.status === 'in_progress' && <Clock size={9} />}
+                  {task.status === 'todo'     && <Circle size={9} />}
                   <span className="truncate max-w-[140px]">{task.title}</span>
                 </div>
               ))}

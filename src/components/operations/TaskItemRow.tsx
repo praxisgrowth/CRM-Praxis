@@ -121,7 +121,9 @@ export function TaskItemRow({ task, onPlay, onStop, onClick }: Props) {
 
       {/* Blocked indicator */}
       {isBlocked && (
-        <AlertCircle size={13} style={{ color: '#ef4444', flexShrink: 0 }} title="Aguardando conclusão de tarefa anterior" />
+        <span title="Aguardando conclusão de tarefa anterior" style={{ flexShrink: 0 }}>
+          <AlertCircle size={13} style={{ color: '#ef4444' }} />
+        </span>
       )}
     </div>
   )

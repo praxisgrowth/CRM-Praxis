@@ -3,6 +3,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Task, TaskChecklist, TaskComment, TaskStatus } from '../lib/database.types'
 
+// Bypass TS 5.9 + Supabase 2.98 strict-mode type inference for mutation ops.
+// Runtime behavior is identical — supabase IS the same object, just retyped.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _db = supabase as unknown as { from(table: string): any }
+
 /* ─── Types ──────────────────────────────────────── */
 export interface TaskWithRelations extends Task {
   checklists: TaskChecklist[]
@@ -124,26 +129,29 @@ export function useTaskManager(): UseTaskManagerResult {
 
   /* ── CRUD ── */
   const addTask = useCallback(async (input: NewTaskInput) => {
-    const { error: sbErr } = await supabase.from('tasks').insert({
-      title:           input.title,
-      description:     input.description ?? null,
-      status:          input.status ?? 'todo',
-      priority:        input.priority ?? 'media',
-      project_id:      input.project_id ?? null,
-      client_id:       input.client_id ?? null,
-      assignee_id:     input.assignee_id ?? null,
-      deadline:        input.deadline ?? null,
-      estimated_hours: input.estimated_hours ?? 0,
-      depends_on_id:   input.depends_on_id ?? null,
-      actual_hours:    0,
-    } as any)
+    const { error: sbErr } = await _db.from('tasks').insert({
+      title:               input.title,
+      description:         input.description ?? null,
+      status:              input.status ?? 'todo',
+      priority:            input.priority ?? 'media',
+      project_id:          input.project_id ?? null,
+      client_id:           input.client_id ?? null,
+      template_id:         null,
+      assignee_id:         input.assignee_id ?? null,
+      due_date:            null,
+      deadline:            input.deadline ?? null,
+      estimated_hours:     input.estimated_hours ?? 0,
+      actual_hours:        0,
+      current_timer_start: null,
+      depends_on_id:       input.depends_on_id ?? null,
+    })
     if (sbErr) throw sbErr
     refetch()
   }, [refetch])
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
-    const { error: sbErr } = await supabase.from('tasks').update(updates as any).eq('id', id)
+    const { error: sbErr } = await _db.from('tasks').update(updates).eq('id', id)
     if (sbErr) { console.error('[useTaskManager] updateTask error:', sbErr.message); refetch() }
   }, [refetch])
 
@@ -179,12 +187,12 @@ export function useTaskManager(): UseTaskManagerResult {
       ? { ...t, checklists: t.checklists.map(c => c.id === checklistId ? { ...c, is_completed: isCompleted } : c) }
       : t
     ))
-    await supabase.from('task_checklists').update({ is_completed: isCompleted }).eq('id', checklistId)
+    await _db.from('task_checklists').update({ is_completed: isCompleted }).eq('id', checklistId)
   }, [])
 
   /* ── Comments ── */
   const addComment = useCallback(async (taskId: string, body: string) => {
-    const { error: sbErr } = await supabase.from('task_comments').insert({ task_id: taskId, body, author: 'Equipe' })
+    const { error: sbErr } = await _db.from('task_comments').insert({ task_id: taskId, body, author: 'Equipe' })
     if (sbErr) throw sbErr
     refetch()
   }, [refetch])

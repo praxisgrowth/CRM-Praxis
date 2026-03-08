@@ -23,9 +23,10 @@ interface Props {
 }
 
 const PRIORITY_STYLES: Record<Priority, { label: string; color: string; bg: string }> = {
-  alta:  { label: 'Alta',  color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
-  media: { label: 'Média', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  baixa: { label: 'Baixa', color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
+  alta:    { label: 'Alta',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+  media:   { label: 'Média',   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  baixa:   { label: 'Baixa',   color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
+  urgente: { label: 'Urgente', color: '#ec4899', bg: 'rgba(236,72,153,0.12)' },
 }
 
 function formatValue(v: number) {

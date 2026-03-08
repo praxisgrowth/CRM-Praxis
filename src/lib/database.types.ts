@@ -297,102 +297,124 @@ export interface Database {
         Row: AgencySettingsRow
         Insert: Omit<AgencySettingsRow, 'id'>
         Update: Partial<Omit<AgencySettingsRow, 'id'>>
+        Relationships: []
       }
       leads: {
         Row: Lead
         Insert: Omit<Lead, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Lead, 'id' | 'created_at'>>
+        Relationships: []
       }
       lead_activities: {
         Row: LeadActivity
         Insert: Omit<LeadActivity, 'id' | 'created_at'>
         Update: Partial<Omit<LeadActivity, 'id' | 'created_at'>>
+        Relationships: []
       }
       clients: {
         Row: Client
         Insert: Omit<Client, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Client, 'id' | 'created_at'>>
+        Relationships: []
       }
       mrr_history: {
         Row: MRRHistory
         Insert: Omit<MRRHistory, 'id'>
         Update: Partial<Omit<MRRHistory, 'id'>>
+        Relationships: []
       }
       kpi_metrics: {
         Row: KPIMetric
         Insert: Omit<KPIMetric, 'id' | 'updated_at'>
         Update: Partial<Omit<KPIMetric, 'id'>>
+        Relationships: []
       }
       pipeline_deals: {
         Row: PipelineDeal
         Insert: Omit<PipelineDeal, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<PipelineDeal, 'id' | 'created_at'>>
+        Relationships: []
       }
       projects: {
         Row: Project
         Insert: Omit<Project, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Project, 'id' | 'created_at'>>
+        Relationships: []
       }
       tasks: {
         Row: Task
         Insert: Omit<Task, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Task, 'id' | 'created_at'>>
+        Relationships: []
       }
       project_templates: {
         Row: ProjectTemplate
         Insert: Omit<ProjectTemplate, 'id' | 'created_at'>
         Update: Partial<Omit<ProjectTemplate, 'id' | 'created_at'>>
+        Relationships: []
       }
       task_checklists: {
         Row: TaskChecklist
         Insert: Omit<TaskChecklist, 'id' | 'created_at'>
         Update: Partial<Omit<TaskChecklist, 'id' | 'created_at'>>
+        Relationships: []
       }
       task_comments: {
         Row: TaskComment
         Insert: Omit<TaskComment, 'id' | 'created_at'>
         Update: Partial<Omit<TaskComment, 'id' | 'created_at'>>
+        Relationships: []
       }
       task_attachments: {
         Row: TaskAttachment
         Insert: Omit<TaskAttachment, 'id' | 'created_at'>
         Update: Partial<Omit<TaskAttachment, 'id' | 'created_at'>>
+        Relationships: []
       }
       financial_transactions: {
         Row: FinancialTransaction
         Insert: Omit<FinancialTransaction, 'id' | 'created_at'>
         Update: Partial<Omit<FinancialTransaction, 'id' | 'created_at'>>
+        Relationships: []
       }
       financial_payments: {
         Row: FinancialPayment
         Insert: Omit<FinancialPayment, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<FinancialPayment, 'id' | 'created_at'>>
+        Relationships: []
       }
       financial_subscriptions: {
         Row: FinancialSubscription
         Insert: Omit<FinancialSubscription, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<FinancialSubscription, 'id' | 'created_at'>>
+        Relationships: []
       }
       nexus_files: {
         Row: NexusFile
         Insert: Omit<NexusFile, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<NexusFile, 'id' | 'created_at'>>
+        Relationships: []
       }
       nexus_approvals: {
         Row: NexusApproval
         Insert: Omit<NexusApproval, 'id' | 'created_at'>
         Update: Partial<Omit<NexusApproval, 'id' | 'created_at'>>
+        Relationships: []
       }
       team_members: {
         Row: TeamMember
         Insert: Omit<TeamMember, 'id' | 'created_at'>
         Update: Partial<Omit<TeamMember, 'id' | 'created_at'>>
+        Relationships: []
       }
       audit_logs: {
         Row: AuditLog
         Insert: Omit<AuditLog, 'id' | 'created_at'>
         Update: Partial<Omit<AuditLog, 'id' | 'created_at'>>
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }

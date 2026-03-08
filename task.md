@@ -51,3 +51,10 @@
   - [ ] Fundação da Autenticação Multi-tenant
   - [ ] Dashboard exclusivo por `client_id`
   - [ ] Central de Aprovação de Conteúdos
+
+- [x] Fase 6: Gestão de Projetos & Onboarding (Operação)
+  - [x] Migração de Schema para `tasks_v2` e `project_templates` (Planejado)
+  - [x] UI: `ProjectManagerPage` (Planejado)
+  - [x] Sistema de Time Tracking (Planejado)
+  - [x] Automação n8n: Clonagem de Templates no "Lead Fechado" (Planejado)
+  - [x] Checklists e Comentários nas Tarefas (Planejado)
