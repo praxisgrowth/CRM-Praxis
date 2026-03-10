@@ -47,6 +47,9 @@ export function useTemplates(): UseTemplatesResult {
       const { error: err } = await db.from('project_templates').insert(data)
       if (err) throw new Error(err.message)
       refetch()
+    } catch (e: any) {
+      setError(e.message ?? 'Erro ao salvar')
+      throw e
     } finally {
       setSaving(false)
     }
@@ -58,6 +61,9 @@ export function useTemplates(): UseTemplatesResult {
       const { error: err } = await db.from('project_templates').update(data).eq('id', id)
       if (err) throw new Error(err.message)
       refetch()
+    } catch (e: any) {
+      setError(e.message ?? 'Erro ao atualizar')
+      throw e
     } finally {
       setSaving(false)
     }
@@ -69,6 +75,9 @@ export function useTemplates(): UseTemplatesResult {
       const { error: err } = await db.from('project_templates').delete().eq('id', id)
       if (err) throw new Error(err.message)
       refetch()
+    } catch (e: any) {
+      setError(e.message ?? 'Erro ao deletar')
+      throw e
     } finally {
       setSaving(false)
     }
@@ -86,11 +95,12 @@ export function useTemplates(): UseTemplatesResult {
 
     try {
       await Promise.all(
-        ordered.map((t, i) =>
-          db.from('project_templates')
+        ordered.map(async (t, i) => {
+          const { error: err } = await db.from('project_templates')
             .update({ task_number: i + 1 })
             .eq('id', t.id)
-        )
+          if (err) throw new Error(err.message)
+        })
       )
     } catch (e: any) {
       // Revert on failure
