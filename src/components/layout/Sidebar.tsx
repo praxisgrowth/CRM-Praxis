@@ -94,7 +94,8 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Geral',         to: '/settings' },
       { label: 'Equipe',        to: '/settings/team' },
       { label: 'Setores',       to: '/settings/sectors' },
-      { label: 'Deliverables',  to: '/settings/deliverables' },
+      { label: 'Deliverables',    to: '/settings/deliverables' },
+      { label: 'Tarefas Padrão',  to: '/settings/templates' },
     ],
   },
 ]
