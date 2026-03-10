@@ -191,6 +191,7 @@ function TemplateEditor({
       onClose()
     } catch (e: any) {
       setErr(e.message ?? 'Erro ao excluir')
+    } finally {
       setLocalSaving(false)
     }
   }
