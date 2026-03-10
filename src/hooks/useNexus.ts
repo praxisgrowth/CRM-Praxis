@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import type { NexusFile, ApprovalAction } from '../lib/database.types'
 
 export function useNexus() {
+  const { profile } = useAuth()
   const [files, setFiles] = useState<NexusFile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -14,33 +16,40 @@ export function useNexus() {
     async function fetchFiles() {
       setLoading(true)
       try {
-        const { data, error: err } = await supabase
+        let query = supabase
           .from('nexus_files')
-          .select(`
-            *,
-            project:projects(name),
-            client:leads(name)
-          `)
-          .order('created_at', { ascending: false })
+          .select('*')
+
+        // Se for cliente, filtra apenas os arquivos dele
+        if (profile?.role === 'CLIENT' && profile.client_id) {
+          query = query.eq('client_id', profile.client_id)
+        }
+
+        const { data, error: err } = await query.order('created_at', { ascending: false })
 
         if (err) throw err
 
-        // Adaptando o retorno para o formato esperado pelo frontend
+        // Já usamos as colunas denormalizadas: client_name e project_name
         const formattedFiles = (data || []).map((f: any) => ({
           ...f,
-          project_name: f.project?.name || null,
-          client_name: f.client?.name || null,
+          project_name: f.project_name || null,
+          client_name: f.client_name || null,
         }))
 
         setFiles(formattedFiles as NexusFile[])
-      } catch (e) {
-        console.error('[useNexus] fetchFiles error:', e)
-        setError(e instanceof Error ? e.message : 'Erro ao carregar arquivos do Nexus')
+      } catch (e: any) {
+        console.error('[useNexus] Erro detalhado ao carregar arquivos:', {
+          message: e.message,
+          code: e.code,
+          hint: e.hint,
+          details: e.details
+        })
+        setError(`Falha na conexão com o banco (Código: ${e.code || 'Desconhecido'}). Verifique as permissões de RLS.`)
         
-        // Dados de fallback para demonstração se houver erro
+        // Dados de fallback apenas em desenvolvimento ou erro crítico
         setFiles([
           {
-            id: '1',
+            id: 'demo-1',
             title: 'Logo Principal - Versão Dark',
             description: 'Arquivo final da logo para aprovação.',
             type: 'imagem',
@@ -53,10 +62,12 @@ export function useNexus() {
             url: null,
             thumbnail_url: null,
             client_id: null,
-            project_id: null
+            project_id: null,
+            catalog_item_id: null,
+            sector_id: null,
           },
           {
-            id: '2',
+            id: 'demo-2',
             title: 'Copy de Lançamento - Março',
             description: 'Texto para os ads de Facebook/Instagram.',
             type: 'copy',
@@ -69,7 +80,9 @@ export function useNexus() {
             url: null,
             thumbnail_url: null,
             client_id: null,
-            project_id: null
+            project_id: null,
+            catalog_item_id: null,
+            sector_id: null,
           }
         ])
       } finally {
@@ -78,7 +91,7 @@ export function useNexus() {
     }
 
     fetchFiles()
-  }, [tick])
+  }, [profile?.role, profile?.client_id, tick]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitApproval = useCallback(async (fileId: string, action: ApprovalAction, comment: string) => {
     try {

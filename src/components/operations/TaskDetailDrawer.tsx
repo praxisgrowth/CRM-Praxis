@@ -1,30 +1,65 @@
 // src/components/operations/TaskDetailDrawer.tsx
 import { useState } from 'react'
-import { X, Clock, CheckSquare, Square, MessageCircle, Send, Play, StopCircle, Lock } from 'lucide-react'
+import {
+  X, Clock, CheckSquare, Square, MessageCircle, Send, Play, StopCircle,
+  Lock, Edit2, Save, XCircle,
+} from 'lucide-react'
 import type { TaskWithRelations } from '../../hooks/useTaskManager'
-import type { TaskStatus } from '../../lib/database.types'
+import type { TaskStatus, Priority, TeamMember } from '../../lib/database.types'
 import { formatHours } from '../../hooks/useTaskManager'
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string; color: string }[] = [
-  { value: 'todo',           label: 'A Fazer',           color: '#64748b' },
-  { value: 'in_progress',    label: 'Em Andamento',      color: '#00d2ff' },
-  { value: 'waiting_client', label: 'Aguardando Cliente',color: '#f59e0b' },
-  { value: 'done',           label: 'Concluído',         color: '#10b981' },
-  { value: 'blocked',        label: 'Bloqueado',         color: '#ef4444' },
+  { value: 'todo',           label: 'A Fazer',            color: '#64748b' },
+  { value: 'in_progress',    label: 'Em Andamento',       color: '#00d2ff' },
+  { value: 'waiting_client', label: 'Aguardando Cliente', color: '#f59e0b' },
+  { value: 'done',           label: 'Concluído',          color: '#10b981' },
+  { value: 'blocked',        label: 'Bloqueado',          color: '#ef4444' },
 ]
+
+const PRIORITY_OPTIONS: { value: Priority; label: string; color: string }[] = [
+  { value: 'baixa',   label: 'Baixa',   color: '#64748b' },
+  { value: 'media',   label: 'Média',   color: '#f59e0b' },
+  { value: 'alta',    label: 'Alta',    color: '#ef4444' },
+  { value: 'urgente', label: 'Urgente', color: '#ec4899' },
+]
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 8,
+  color: '#e2e8f0',
+  outline: 'none',
+  padding: '8px 10px',
+  fontSize: 13,
+  width: '100%',
+} as const
 
 interface Props {
   task: TaskWithRelations
+  teamMembers?: TeamMember[]
   onClose: () => void
   onUpdateStatus: (status: TaskStatus) => void
+  onUpdate?: (updates: { title?: string; description?: string | null; deadline?: string | null; priority?: Priority; assignee_id?: string | null }) => void
   onToggleChecklist: (checklistId: string, isCompleted: boolean) => void
   onAddComment: (body: string) => void
   onPlay: () => void
   onStop: () => void
 }
 
-export function TaskDetailDrawer({ task, onClose, onUpdateStatus, onToggleChecklist, onAddComment, onPlay, onStop }: Props) {
-  const [comment, setComment] = useState('')
+export function TaskDetailDrawer({
+  task, teamMembers = [], onClose, onUpdateStatus, onUpdate,
+  onToggleChecklist, onAddComment, onPlay, onStop,
+}: Props) {
+  const [comment,   setComment]   = useState('')
+  const [editMode,  setEditMode]  = useState(false)
+
+  // Edit form state
+  const [editTitle,      setEditTitle]      = useState(task.title)
+  const [editDesc,       setEditDesc]       = useState(task.description ?? '')
+  const [editDeadline,   setEditDeadline]   = useState(task.deadline ?? '')
+  const [editPriority,   setEditPriority]   = useState<Priority>(task.priority)
+  const [editAssigneeId, setEditAssigneeId] = useState(task.assignee_id ?? '')
+
   const isRunning = !!task.current_timer_start
   const timerPct  = task.estimated_hours > 0
     ? Math.min(100, Math.round((task.actual_hours / task.estimated_hours) * 100))
@@ -34,6 +69,28 @@ export function TaskDetailDrawer({ task, onClose, onUpdateStatus, onToggleCheckl
     if (!comment.trim()) return
     onAddComment(comment.trim())
     setComment('')
+  }
+
+  function openEdit() {
+    // Sync form with latest task data
+    setEditTitle(task.title)
+    setEditDesc(task.description ?? '')
+    setEditDeadline(task.deadline ?? '')
+    setEditPriority(task.priority)
+    setEditAssigneeId(task.assignee_id ?? '')
+    setEditMode(true)
+  }
+
+  function handleSaveEdit() {
+    if (!editTitle.trim()) return
+    onUpdate?.({
+      title:       editTitle.trim(),
+      description: editDesc.trim() || null,
+      deadline:    editDeadline || null,
+      priority:    editPriority,
+      assignee_id: editAssigneeId || null,
+    })
+    setEditMode(false)
   }
 
   return (
@@ -61,42 +118,150 @@ export function TaskDetailDrawer({ task, onClose, onUpdateStatus, onToggleCheckl
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           <div className="flex-1 pr-4">
-            <h3 className="text-base font-semibold text-white leading-snug">{task.title}</h3>
-            {task.isBlocked && (
+            {editMode ? (
+              <input
+                autoFocus
+                style={inputStyle}
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="text-base font-semibold"
+              />
+            ) : (
+              <h3 className="text-base font-semibold text-white leading-snug">{task.title}</h3>
+            )}
+            {task.isBlocked && !editMode && (
               <span className="inline-flex items-center gap-1 text-xs text-red-400 mt-1">
                 <Lock size={11} /> Bloqueada — aguardando tarefa anterior
               </span>
             )}
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0">
-            <X size={16} />
-          </button>
+
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Edit / Save / Cancel */}
+            {onUpdate && !editMode && (
+              <button
+                onClick={openEdit}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-white/10"
+                style={{ color: '#475569' }}
+                title="Editar tarefa"
+              >
+                <Edit2 size={14} />
+              </button>
+            )}
+            {editMode && (
+              <>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={!editTitle.trim()}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.35)' }}
+                >
+                  <Save size={12} /> Salvar
+                </button>
+                <button
+                  onClick={() => setEditMode(false)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-white/10"
+                  style={{ color: '#475569' }}
+                >
+                  <XCircle size={14} />
+                </button>
+              </>
+            )}
+            <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-white/10 ml-1" style={{ color: '#475569' }}>
+              <X size={15} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
-          {/* Status selector */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Status</p>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUS_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => onUpdateStatus(opt.value)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={
-                    task.status === opt.value
-                      ? { background: `${opt.color}22`, border: `1px solid ${opt.color}66`, color: opt.color }
-                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#64748b' }
-                  }
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* ── Edit form ── */}
+          {editMode && (
+            <div className="space-y-3 p-3 rounded-xl" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
+              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">Edição Inline</p>
 
-          {/* Time Tracking Widget */}
+              {/* Description */}
+              <div>
+                <label className="text-[11px] text-slate-500 block mb-1">Descrição</label>
+                <textarea
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.5' }}
+                  placeholder="Contexto, critérios de aceite…"
+                  value={editDesc}
+                  onChange={e => setEditDesc(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Deadline */}
+                <div>
+                  <label className="text-[11px] text-slate-500 block mb-1">Prazo</label>
+                  <input
+                    type="date"
+                    style={{ ...inputStyle, colorScheme: 'dark' }}
+                    value={editDeadline}
+                    onChange={e => setEditDeadline(e.target.value)}
+                  />
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label className="text-[11px] text-slate-500 block mb-1">Prioridade</label>
+                  <select
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    value={editPriority}
+                    onChange={e => setEditPriority(e.target.value as Priority)}
+                  >
+                    {PRIORITY_OPTIONS.map(p => (
+                      <option key={p.value} value={p.value} style={{ background: '#0a0e16' }}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Assignee */}
+              {teamMembers.length > 0 && (
+                <div>
+                  <label className="text-[11px] text-slate-500 block mb-1">Responsável</label>
+                  <select
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    value={editAssigneeId}
+                    onChange={e => setEditAssigneeId(e.target.value)}
+                  >
+                    <option value="" style={{ background: '#0a0e16' }}>— Nenhum —</option>
+                    {teamMembers.map(m => (
+                      <option key={m.id} value={m.id} style={{ background: '#0a0e16' }}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Status selector (always visible) ── */}
+          {!editMode && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Status</p>
+              <div className="flex flex-wrap gap-1.5">
+                {STATUS_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => onUpdateStatus(opt.value)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={
+                      task.status === opt.value
+                        ? { background: `${opt.color}22`, border: `1px solid ${opt.color}66`, color: opt.color }
+                        : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#64748b' }
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Time Tracking Widget ── */}
           <div
             className="rounded-xl p-4 space-y-3"
             style={{ background: 'rgba(0,210,255,0.05)', border: '1px solid rgba(0,210,255,0.12)' }}
@@ -153,7 +318,7 @@ export function TaskDetailDrawer({ task, onClose, onUpdateStatus, onToggleCheckl
             )}
           </div>
 
-          {/* Checklist */}
+          {/* ── Checklist ── */}
           {task.checklists.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Checklist</p>
@@ -184,15 +349,15 @@ export function TaskDetailDrawer({ task, onClose, onUpdateStatus, onToggleCheckl
             </div>
           )}
 
-          {/* Description */}
-          {task.description && (
+          {/* ── Description (view mode) ── */}
+          {!editMode && task.description && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Descrição</p>
               <p className="text-sm text-slate-400 leading-relaxed">{task.description}</p>
             </div>
           )}
 
-          {/* Comments */}
+          {/* ── Comments ── */}
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <MessageCircle size={12} /> Comentários ({task.comments.length})

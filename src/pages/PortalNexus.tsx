@@ -3,10 +3,14 @@ import {
   Globe, CheckCircle2, Pencil, HelpCircle, PlusCircle,
   ImageIcon, FileText, Video, File, Loader2, FolderOpen,
   BarChart3, Calendar, Sparkles, Filter, Upload, Check, X,
+  Eye, Plus,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useNexus } from '../hooks/useNexus'
 import { NexusTimeline } from '../components/nexus/NexusTimeline'
+import { NexusBrandFolder } from '../components/nexus/NexusBrandFolder'
+import { NexusUploadModal } from '../components/nexus/NexusUploadModal'
+import { useAuth } from '../contexts/AuthContext'
 import type { NexusFile, NexusFileType, NexusFileStatus, ApprovalAction } from '../lib/database.types'
 
 // ─── Config maps ──────────────────────────────────────────────
@@ -39,8 +43,8 @@ const ACTIONS: {
 
 const TABS = [
   { id: 'aprovacoes',   label: 'Aprovações',      icon: CheckCircle2, live: true  },
-  { id: 'brand-folder', label: 'Brand Folder',     icon: FolderOpen,   live: false },
-  { id: 'timeline',     label: 'Timeline',         icon: Calendar,     live: false },
+  { id: 'brand-folder', label: 'Brand Folder',     icon: FolderOpen,   live: true  },
+  { id: 'timeline',     label: 'Timeline',         icon: Calendar,     live: true  },
   { id: 'metricas',     label: 'Métricas de Ads',  icon: BarChart3,    live: false },
 ]
 
@@ -58,29 +62,27 @@ function fmtDate(iso: string) {
 }
 
 // ─── Media Card ───────────────────────────────────────────────
-interface CardState {
-  fileId: string
-  action: ApprovalAction
-}
-
 function MediaCard({
   file,
   activeState,
   onSelectAction,
+  onCommentChange,
   onCancel,
   onConfirm,
   submitting,
   justSuggested,
+  clientView = false,
 }: {
   file: NexusFile
-  activeState: CardState | null
+  activeState: { fileId: string; action: ApprovalAction; comment: string } | null
   onSelectAction: (fileId: string, action: ApprovalAction) => void
+  onCommentChange: (comment: string) => void
   onCancel: () => void
   onConfirm: (fileId: string, action: ApprovalAction, comment: string) => void
   submitting: boolean
   justSuggested: string | null
+  clientView?: boolean
 }) {
-  const [comment, setComment] = useState('')
   const isActive     = activeState !== null
   const typeConf     = TYPE_CONFIG[file.type]
   const statusConf   = STATUS_CONFIG[file.status]
@@ -89,12 +91,10 @@ function MediaCard({
   const isSuggested  = justSuggested === file.id
 
   function handleConfirm() {
-    onConfirm(file.id, activeState!.action, comment)
-    setComment('')
+    onConfirm(file.id, activeState!.action, activeState!.comment)
   }
 
   function handleCancel() {
-    setComment('')
     onCancel()
   }
 
@@ -199,8 +199,8 @@ function MediaCard({
           </div>
         )}
 
-        {/* Already decided — status display */}
-        {file.status !== 'pendente' && !isActive && !isSuggested && (
+        {/* Already decided — status display (team view only) */}
+        {file.status !== 'pendente' && !isActive && !isSuggested && !clientView && (
           <div
             className="mt-auto flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
             style={{ background: statusConf.bg, color: statusConf.color, border: `1px solid ${statusConf.color}30` }}
@@ -228,34 +228,32 @@ function MediaCard({
 
             {/* Comment textarea */}
             <textarea
-              value={comment}
-              onChange={e => setComment(e.target.value)}
+              value={activeState?.comment || ''}
+              onChange={e => onCommentChange(e.target.value)}
+              autoFocus
               placeholder={
                 activeState?.action === 'sugestao'
                   ? 'Descreva o conteúdo que gostaria de ver… (obrigatório)'
                   : 'Adicione um comentário (opcional)…'
               }
               rows={3}
-              className="w-full rounded-xl px-3 py-2 text-xs text-slate-300 resize-none outline-none transition-all duration-200 placeholder:text-slate-600"
+              className="w-full rounded-xl px-3 py-2 text-xs text-slate-200 outline-none transition-all duration-200 placeholder:text-slate-600 ring-1 ring-white/10 focus:ring-indigo-500/50"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.06)',
               }}
-              onFocus={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.15)' }}
-              onBlur={e =>  { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.08)' }}
             />
 
             {/* Confirm / Cancel */}
             <div className="flex gap-2">
               <button
                 onClick={handleConfirm}
-                disabled={submitting || (activeState?.action === 'sugestao' && !comment.trim())}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 disabled:opacity-40"
+                disabled={submitting || (activeState?.action === 'sugestao' && !activeState?.comment?.trim())}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 disabled:opacity-40 hover:brightness-110 active:scale-95 shadow-lg shadow-indigo-500/20"
                 style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff' }}
               >
                 {submitting
-                  ? <Loader2 size={11} className="animate-spin" />
-                  : <Check size={11} />
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <Check size={13} />
                 }
                 Confirmar
               </button>
@@ -300,13 +298,22 @@ function ComingSoonTab({
 
 // ─── Page ─────────────────────────────────────────────────────
 export function PortalNexusPage() {
-  const { files, loading, error, submitApproval } = useNexus()
+  const { files, loading, error, submitApproval, refetch } = useNexus()
+  const { user, profile } = useAuth()
 
-  const [activeTab,    setActiveTab]    = useState('aprovacoes')
-  const [filter,       setFilter]       = useState<NexusFileStatus | 'todos'>('todos')
-  const [activeState,  setActiveState]  = useState<{ fileId: string; action: ApprovalAction } | null>(null)
-  const [submitting,   setSubmitting]   = useState(false)
+  // Resolve role — no session → treat as ADMIN (backward compat)
+  const role = user === null ? 'ADMIN' : (profile?.role ?? 'MEMBER')
+  const canSwitchView = role === 'ADMIN' || role === 'MEMBER'
+
+  const [viewMode,      setViewMode]      = useState<'equipe' | 'cliente'>('equipe')
+  const [activeTab,     setActiveTab]     = useState('aprovacoes')
+  const [filter,        setFilter]        = useState<NexusFileStatus | 'todos'>('todos')
+  const [activeState,   setActiveState]   = useState<{ fileId: string; action: ApprovalAction; comment: string } | null>(null)
+  const [submitting,    setSubmitting]    = useState(false)
   const [justSuggested, setJustSuggested] = useState<string | null>(null)
+  const [showUpload,    setShowUpload]    = useState(false)
+
+  const isClientView = viewMode === 'cliente' || role === 'CLIENT'
 
   const filtered = useMemo(() => {
     if (filter === 'todos') return files
@@ -346,12 +353,55 @@ export function PortalNexusPage() {
             Plataforma de experiência e aprovação de conteúdo para clientes.
           </p>
         </div>
-        <div
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold flex-shrink-0"
-          style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: '#34d399' }}
-        >
-          <Sparkles size={11} />
-          Fase 3 · Ativa
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Upload button — equipe only */}
+          {!isClientView && (
+            <button
+              onClick={() => setShowUpload(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+              }}
+            >
+              <Plus size={12} /> Novo Deliverable
+            </button>
+          )}
+
+          {/* View mode switcher — ADMIN / MEMBER only */}
+          {canSwitchView && (
+            <div
+              className="flex items-center gap-1 p-1 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              {(['equipe', 'cliente'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+                    viewMode === mode
+                      ? 'text-white'
+                      : 'text-slate-500 hover:text-slate-300',
+                  )}
+                  style={viewMode === mode ? {
+                    background: 'rgba(99,102,241,0.2)',
+                    border: '1px solid rgba(99,102,241,0.35)',
+                  } : undefined}
+                >
+                  <Eye size={11} />
+                  {mode === 'equipe' ? 'Visão Equipe' : 'Visão Cliente'}
+                </button>
+              ))}
+            </div>
+          )}
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+            style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: '#34d399' }}
+          >
+            <Sparkles size={11} />
+            Fase 3 · Ativa
+          </div>
         </div>
       </div>
 
@@ -394,58 +444,74 @@ export function PortalNexusPage() {
       {/* ── Tab: Central de Aprovações ── */}
       {activeTab === 'aprovacoes' && (
         <>
-          {/* Stats strip */}
-          <div className="grid grid-cols-4 gap-3 flex-shrink-0">
-            {[
-              { label: 'Pendentes', value: stats.pendente, color: '#f59e0b' },
-              { label: 'Aprovados', value: stats.aprovado, color: '#10b981' },
-              { label: 'Em Ajuste', value: stats.ajuste,   color: '#f97316' },
-              { label: 'Em Dúvida', value: stats.duvida,   color: '#3b82f6' },
-            ].map(s => (
-              <div
-                key={s.label}
-                className="rounded-xl px-4 py-3 text-center"
-                style={{ background: `${s.color}08`, border: `1px solid ${s.color}18` }}
-              >
-                <p className="text-2xl font-bold tabular-nums" style={{ color: s.color }}>
-                  {s.value}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Filter chips */}
-          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-            <Filter size={13} className="text-slate-600 flex-shrink-0" />
-            {FILTERS.map(f => {
-              const isActive = filter === f.value
-              const count = f.value === 'todos' ? files.length : stats[f.value as NexusFileStatus]
-              return (
-                <button
-                  key={f.value}
-                  onClick={() => setFilter(f.value)}
-                  className={clsx(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',
-                    isActive
-                      ? 'text-white bg-blue-500/15 border border-blue-500/30'
-                      : 'text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/10',
-                  )}
+          {/* Stats strip — team view only */}
+          {!isClientView && (
+            <div className="grid grid-cols-4 gap-3 flex-shrink-0">
+              {[
+                { label: 'Pendentes', value: stats.pendente, color: '#f59e0b' },
+                { label: 'Aprovados', value: stats.aprovado, color: '#10b981' },
+                { label: 'Em Ajuste', value: stats.ajuste,   color: '#f97316' },
+                { label: 'Em Dúvida', value: stats.duvida,   color: '#3b82f6' },
+              ].map(s => (
+                <div
+                  key={s.label}
+                  className="rounded-xl px-4 py-3 text-center"
+                  style={{ background: `${s.color}08`, border: `1px solid ${s.color}18` }}
                 >
-                  {f.label}
-                  <span
-                    className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                    style={{
-                      background: isActive ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.06)',
-                      color:      isActive ? '#93c5fd'              : '#475569',
-                    }}
+                  <p className="text-2xl font-bold tabular-nums" style={{ color: s.color }}>
+                    {s.value}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Filter chips — team view only */}
+          {!isClientView && (
+            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+              <Filter size={13} className="text-slate-600 flex-shrink-0" />
+              {FILTERS.map(f => {
+                const isActive = filter === f.value
+                const count = f.value === 'todos' ? files.length : stats[f.value as NexusFileStatus]
+                return (
+                  <button
+                    key={f.value}
+                    onClick={() => setFilter(f.value)}
+                    className={clsx(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',
+                      isActive
+                        ? 'text-white bg-blue-500/15 border border-blue-500/30'
+                        : 'text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/10',
+                    )}
                   >
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+                    {f.label}
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                      style={{
+                        background: isActive ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.06)',
+                        color:      isActive ? '#93c5fd'              : '#475569',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Client view header */}
+          {isClientView && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl flex-shrink-0"
+              style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
+            >
+              <Eye size={13} className="text-indigo-400" />
+              <span className="text-xs text-indigo-300 font-medium">Visão Cliente</span>
+              <span className="text-xs text-slate-600 ml-1">— Aprove, sugira ajustes ou tire dúvidas sobre os conteúdos abaixo.</span>
+            </div>
+          )}
 
           {/* Loading */}
           {loading && (
@@ -460,7 +526,7 @@ export function PortalNexusPage() {
               className="px-4 py-3 rounded-xl text-xs flex-shrink-0"
               style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', color: '#fca5a5' }}
             >
-              Erro ao carregar arquivos do Supabase — exibindo dados de demonstração.
+              {error} — exibindo dados de demonstração.
             </div>
           )}
 
@@ -481,11 +547,13 @@ export function PortalNexusPage() {
                   key={file.id}
                   file={file}
                   activeState={activeState?.fileId === file.id ? activeState : null}
-                  onSelectAction={(fileId, action) => setActiveState({ fileId, action })}
+                  onSelectAction={(fileId, action) => setActiveState({ fileId, action, comment: '' })}
+                  onCommentChange={(comment) => setActiveState(prev => prev ? { ...prev, comment } : null)}
                   onCancel={() => setActiveState(null)}
                   onConfirm={handleConfirm}
                   submitting={submitting}
                   justSuggested={justSuggested}
+                  clientView={isClientView}
                 />
               ))}
             </div>
@@ -493,13 +561,9 @@ export function PortalNexusPage() {
         </>
       )}
 
-      {/* ── Tab: Brand Folder ── */}
+      {/* ── Tab: Brand Folder (Deliverables Tracker) ── */}
       {activeTab === 'brand-folder' && (
-        <ComingSoonTab
-          icon={FolderOpen}
-          label="Brand Folder"
-          description="Repositório seguro de logos, manuais de marca e contratos assinados para acesso dos clientes."
-        />
+        <NexusBrandFolder clientFilter={isClientView ? undefined : undefined} />
       )}
 
       {/* ── Tab: Timeline ── */}
@@ -513,6 +577,14 @@ export function PortalNexusPage() {
           icon={BarChart3}
           label="Métricas de Ads"
           description="Dashboard em tempo real com dados de Google Ads e Meta Ads via integração n8n."
+        />
+      )}
+
+      {/* ── Upload Modal ── */}
+      {showUpload && (
+        <NexusUploadModal
+          onClose={() => setShowUpload(false)}
+          onSaved={() => refetch()}
         />
       )}
 

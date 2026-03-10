@@ -15,6 +15,8 @@ import {
   Users,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { useAuth } from '../../contexts/AuthContext'
+import type { UserRole } from '../../lib/database.types'
 
 /* ─── Types ──────────────────────────────────────── */
 interface NavItem {
@@ -22,22 +24,36 @@ interface NavItem {
   icon: React.ElementType
   to?: string
   children?: { label: string; to: string }[]
+  /**
+   * Roles that are ALLOWED to see this item.
+   * Undefined = visible to everyone.
+   */
+  allowedRoles?: UserRole[]
 }
 
+/**
+ * Visibility matrix:
+ *   ADMIN   → everything
+ *   MEMBER  → hide Comercial, Financeiro, Configurações
+ *   CLIENT  → only Universidade + Portal Nexus
+ */
 const NAV_ITEMS: NavItem[] = [
   {
     label: 'Dashboard',
     icon: LayoutDashboard,
     to: '/',
+    allowedRoles: ['ADMIN', 'MEMBER'],
   },
   {
     label: 'Clientes',
     icon: Users,
     to: '/comercial/clientes',
+    allowedRoles: ['ADMIN', 'MEMBER'],
   },
   {
     label: 'Comercial',
     icon: Briefcase,
+    allowedRoles: ['ADMIN'],
     children: [
       { label: 'Leads',    to: '/comercial/leads' },
       { label: 'Pipeline', to: '/comercial/pipeline' },
@@ -46,27 +62,40 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: 'Operação',
     icon: Zap,
-    to: '/operacao',
+    allowedRoles: ['ADMIN', 'MEMBER'],
+    children: [
+      { label: 'Tarefas',  to: '/operacao/tarefas' },
+      { label: 'Projetos', to: '/operacao/projetos' },
+    ],
   },
   {
     label: 'Financeiro',
     icon: DollarSign,
     to: '/financeiro',
+    allowedRoles: ['ADMIN'],
   },
   {
     label: 'Universidade',
     icon: GraduationCap,
     to: '/universidade',
+    // visible to all roles
   },
   {
     label: 'Portal Nexus',
     icon: Globe,
     to: '/nexus',
+    // visible to all roles
   },
   {
     label: 'Configurações',
     icon: SettingsIcon,
-    to: '/settings',
+    allowedRoles: ['ADMIN'],
+    children: [
+      { label: 'Geral',         to: '/settings' },
+      { label: 'Equipe',        to: '/settings/team' },
+      { label: 'Setores',       to: '/settings/sectors' },
+      { label: 'Deliverables',  to: '/settings/deliverables' },
+    ],
   },
 ]
 
@@ -182,6 +211,19 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
 /* ─── Sidebar ────────────────────────────────────── */
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const { profile, user } = useAuth()
+
+  /**
+   * Role resolution:
+   * - No session (user === null) → treat as ADMIN for backward compat
+   * - Session but no profile yet → default MEMBER
+   */
+  const role: UserRole = user === null ? 'ADMIN' : (profile?.role ?? 'MEMBER')
+
+  const visibleItems = NAV_ITEMS.filter(item => {
+    if (!item.allowedRoles) return true          // no restriction → everyone sees it
+    return item.allowedRoles.includes(role)
+  })
 
   return (
     <aside
@@ -217,7 +259,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map(item => (
+        {visibleItems.map(item => (
           <NavItemRow key={item.label} item={item} collapsed={collapsed} />
         ))}
       </nav>

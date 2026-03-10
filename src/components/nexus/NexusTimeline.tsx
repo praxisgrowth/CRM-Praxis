@@ -14,14 +14,19 @@ function calcProgress(project: ProjectWithTasks) {
   return Math.round((done / project.tasks.length) * 100)
 }
 
+function parseLocalDate(iso: string): Date {
+  // Date-only strings (YYYY-MM-DD) must be parsed as local noon to avoid UTC-shift
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + 'T12:00:00' : iso)
+}
+
 function fmtDate(iso: string | null) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+  return parseLocalDate(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function daysLeft(due: string | null) {
   if (!due) return null
-  const diff = new Date(due).getTime() - Date.now()
+  const diff = parseLocalDate(due).getTime() - Date.now()
   return Math.ceil(diff / 86_400_000)
 }
 

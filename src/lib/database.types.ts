@@ -174,6 +174,7 @@ export type Priority      = 'baixa' | 'media' | 'alta' | 'urgente'
 export interface Project {
   id: string
   name: string
+  client_id: string | null
   client_name: string
   status: ProjectStatus
   service_type: string | null
@@ -245,20 +246,22 @@ export type NexusFileStatus = 'pendente' | 'aprovado' | 'ajuste' | 'duvida'
 export type ApprovalAction  = 'aprovado' | 'ajuste' | 'duvida' | 'sugestao'
 
 export interface NexusFile {
-  id:            string
-  client_id:     string | null
-  project_id:    string | null
-  client_name:   string | null
-  project_name:  string | null
-  title:         string
-  description:   string | null
-  type:          NexusFileType
-  url:           string | null
-  thumbnail_url: string | null
-  uploaded_by:   string
-  status:        NexusFileStatus
-  created_at:    string
-  updated_at:    string
+  id:              string
+  client_id:       string | null
+  project_id:      string | null
+  client_name:     string | null
+  project_name:    string | null
+  title:           string
+  description:     string | null
+  type:            NexusFileType
+  url:             string | null
+  thumbnail_url:   string | null
+  uploaded_by:     string
+  status:          NexusFileStatus
+  catalog_item_id: string | null   // FK → deliverable_catalog
+  sector_id:       string | null   // FK → sectors
+  created_at:      string
+  updated_at:      string
 }
 
 export interface NexusApproval {
@@ -287,6 +290,38 @@ export interface TeamMember {
   email:      string | null
   initials:   string | null
   avatar_url: string | null
+  created_at: string
+}
+
+// ─── Sectors & Deliverable Catalog ────────────────────────
+export interface Sector {
+  id:         string
+  name:       string
+  color:      string
+  created_at: string
+}
+
+export type DeliverableType = 'imagem' | 'copy' | 'video' | 'documento'
+
+export interface DeliverableCatalogItem {
+  id:          string
+  sector_id:   string | null
+  name:        string
+  description: string | null
+  type:        DeliverableType
+  created_at:  string
+}
+
+// ─── Auth Profiles ─────────────────────────────────────────
+export type UserRole = 'ADMIN' | 'MEMBER' | 'CLIENT'
+
+export interface Profile {
+  id:         string        // uuid — references auth.users
+  full_name:  string | null
+  email:      string | null
+  position:   string | null
+  role:       UserRole
+  client_id:  string | null // links CLIENT-role users to a CRM client record
   created_at: string
 }
 
@@ -405,6 +440,12 @@ export interface Database {
         Row: TeamMember
         Insert: Omit<TeamMember, 'id' | 'created_at'>
         Update: Partial<Omit<TeamMember, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      profiles: {
+        Row: Profile
+        Insert: Omit<Profile, 'created_at'>
+        Update: Partial<Omit<Profile, 'id' | 'created_at'>>
         Relationships: []
       }
       audit_logs: {
