@@ -53,8 +53,33 @@
   - [ ] Central de Aprovação de Conteúdos
 
 - [x] Fase 6: Gestão de Projetos & Onboarding (Operação)
-  - [x] Migração de Schema para `tasks_v2` e `project_templates` (Planejado)
-  - [x] UI: `ProjectManagerPage` (Planejado)
-  - [x] Sistema de Time Tracking (Planejado)
-  - [x] Automação n8n: Clonagem de Templates no "Lead Fechado" (Planejado)
-  - [x] Checklists e Comentários nas Tarefas (Planejado)
+  - [x] Migração de Schema para `tasks_v2` e `project_templates`
+  - [x] Implementação Base da Página de Operação
+  - [x] Sistema de Time Tracking (Play/Stop no CRM)
+  - [x] Seed Data: 48 tarefas padrão inseridas
+  - [/] Fase 6.2: Refinamento Estrutural UI/UX
+    - [ ] Navegação via Sidebar (Submenus: Tarefas/Projetos)
+    - [ ] Remoção de abas internas na `Operations.tsx`
+    - [ ] Filtros Específicos (Setores e Prazos exatos)
+    - [ ] Atalho de Configurações (Engrenagem) para Templates
+    - [ ] Tabela Operacional e Kanban Clean
+  - [x] Fase 6.3: Gestão Administrativa de Templates
+    - [x] Página de Edição de Tarefas Padrão
+    - [ ] Trigger para "Lançar Tarefas Padrão" em projetos existentes
+
+- [ ] Fase 7: Gestão de Equipe & Segurança (RBAC)
+  - [x] Database: Tabela `profiles` (Usuários) vinculada ao Auth
+  - [x] Correção DB: Adicionar `descricao` em `tasks_v2`
+  - [ ] UI: Modal "Nova Tarefa" (Real fetch de usuários + Descrição)
+  - [x] UI: Tela de Gestão de Equipe (Membros)
+  - [ ] Infra: Implementar Edge Function `invite-user` (Fix erro cadastro)
+  - [ ] Auth: Página de Login Neon Dark
+  - [ ] RBAC: Esconder menus (Membro vs Cliente)
+  - [ ] Nexus: Botão "Visão Cliente" (Mirror View)
+
+- [/] Fase 8: Fusão Arquitetural - Tarefas Avançadas
+  - [x] Análise de Engenharia Reversa (Manual de Tarefas)
+  - [x] Design de Convergência (Resumo Arquitetural)
+  - [ ] Implementação de Dependências em Cascata (Recursivo SQL/Hook)
+  - [ ] Sistema de Lançamento em Lote (Batch Insert 2-pass)
+  - [ ] Visão Agrupada por Cliente (Progress Bar UI)
