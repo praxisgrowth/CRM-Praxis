@@ -19,6 +19,7 @@ import {
   Lock,
   AlertCircle,
   KeyRound,
+  ExternalLink,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAudit } from '../hooks/useAudit'
@@ -416,6 +417,14 @@ export function ClientDetail() {
               </>
             ) : (
               <>
+                <button
+                  onClick={() => window.open(`/portal/${client.id}`, '_blank', 'noopener,noreferrer')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.12), rgba(168,85,247,0.12))', border: '1px solid rgba(0,210,255,0.25)', color: '#7dd3fc' }}
+                >
+                  <ExternalLink size={14} />
+                  Ver como Cliente
+                </button>
                 <button
                   onClick={() => setPortalModal(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
