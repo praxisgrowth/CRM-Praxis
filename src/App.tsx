@@ -14,6 +14,7 @@ import { Settings } from './pages/Settings'
 import { TeamPage } from './pages/settings/Team'
 import { SectorsPage } from './pages/settings/Sectors'
 import { DeliverablesPage } from './pages/settings/Deliverables'
+import { StandardTasksPage } from './pages/settings/StandardTasks'
 import { ProfilePage } from './pages/Profile'
 import { PlaceholderPage } from './pages/Placeholder'
 import { LoginPage } from './pages/Login'
@@ -111,6 +112,11 @@ export default function App() {
                 <Route path="deliverables" element={
                   <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/">
                     <DeliverablesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="templates" element={
+                  <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/">
+                    <StandardTasksPage />
                   </ProtectedRoute>
                 } />
               </Route>
