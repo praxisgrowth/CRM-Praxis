@@ -64,6 +64,10 @@ export function NexusPortal() {
       } else {
         setClientName(clientRes.data.name)
         setFiles((filesRes.data ?? []) as NexusFile[])
+
+        if (tasksRes.error) {
+          console.error('[NexusPortal] tasks query failed:', tasksRes.error.message)
+        }
         const allTasks = (tasksRes.data ?? []) as { id: string; status: string }[]
         setTasksTotal(allTasks.length)
         setTasksDone(allTasks.filter(t => t.status === 'done').length)
