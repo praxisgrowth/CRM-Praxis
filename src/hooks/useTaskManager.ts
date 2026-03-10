@@ -150,9 +150,31 @@ export function useTaskManager(): UseTaskManagerResult {
   }, [refetch])
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
+    // Optimistic update
+    setTasks(prev => {
+      const next = prev.map(t => t.id === id ? { ...t, ...updates } : t)
+      if (updates.status === 'done') {
+        return next.map(t =>
+          t.depends_on_id === id && t.status === 'blocked'
+            ? { ...t, status: 'todo' as TaskStatus }
+            : t
+        )
+      }
+      return next
+    })
+
     const { error: sbErr } = await _db.from('tasks').update(updates).eq('id', id)
-    if (sbErr) { console.error('[useTaskManager] updateTask error:', sbErr.message); refetch() }
+    if (sbErr) { console.error('[useTaskManager] updateTask error:', sbErr.message); refetch(); return }
+
+    // Cascade DB update: unblock dependent tasks
+    if (updates.status === 'done') {
+      const { error: cascadeErr } = await _db
+        .from('tasks')
+        .update({ status: 'todo' })
+        .eq('depends_on_id', id)
+        .eq('status', 'blocked')
+      if (cascadeErr) { console.error('[useTaskManager] cascade unblock error:', cascadeErr.message); refetch() }
+    }
   }, [refetch])
 
   const deleteTask = useCallback(async (id: string) => {
