@@ -75,11 +75,11 @@
   - [ ] Infra: Implementar Edge Function `invite-user` (Fix erro cadastro)
   - [ ] Auth: Página de Login Neon Dark
   - [ ] RBAC: Esconder menus (Membro vs Cliente)
-  - [ ] Nexus: Botão "Visão Cliente" (Mirror View)
+  - [x] Nexus: Botão "Visão Cliente" (Mirror View)
 
 - [/] Fase 8: Fusão Arquitetural - Tarefas Avançadas
   - [x] Análise de Engenharia Reversa (Manual de Tarefas)
   - [x] Design de Convergência (Resumo Arquitetural)
-  - [ ] Implementação de Dependências em Cascata (Recursivo SQL/Hook)
+  - [x] Implementação de Dependências em Cascata (Recursivo SQL/Hook)
   - [ ] Sistema de Lançamento em Lote (Batch Insert 2-pass)
-  - [ ] Visão Agrupada por Cliente (Progress Bar UI)
+  - [x] Visão Agrupada por Cliente (Progress Bar UI)
