@@ -1,5 +1,6 @@
 // src/pages/Operations.tsx
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, AlertCircle, RefreshCw, List, LayoutGrid,
@@ -94,6 +95,7 @@ function applyTaskFilters(
 
 /* ─── Gear settings dropdown ── */
 function GearMenu({ onBatchLaunch }: { onBatchLaunch: () => void }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref             = useRef<HTMLDivElement>(null)
 
@@ -146,7 +148,7 @@ function GearMenu({ onBatchLaunch }: { onBatchLaunch: () => void }) {
             </button>
             <button
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all text-left"
-              onClick={() => { setOpen(false); alert('Em breve: Editar Tarefas Padrão') }}
+              onClick={() => { setOpen(false); navigate('/settings/templates') }}
             >
               <ClipboardList size={14} style={{ color: '#8b5cf6', flexShrink: 0 }} />
               Editar Tarefas Padrão
