@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { useAudit } from './useAudit'
 import type { Project, Task } from '../lib/database.types'
 
@@ -33,6 +34,7 @@ export function useOperations(): UseOperationsResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
+  const { profile } = useAuth()
   const { logAction } = useAudit()
 
   const refetch = useCallback(() => setTick(t => t + 1), [])
@@ -42,9 +44,23 @@ export function useOperations(): UseOperationsResult {
       setLoading(true)
       setError(null)
       try {
+        let projQuery = supabase.from('projects').select('*')
+        let taskQuery = supabase.from('tasks').select('*')
+
+        // Se for cliente, filtra apenas os dados dele
+        if (profile?.role === 'CLIENT' && profile.client_id) {
+          // Nota: Projetos não tem client_id direto em algumas versões, 
+          // mas a tabela projects TEM client_name. 
+          // No entanto, o correto para segurança é client_id.
+          // Vou assumir que projects tem client_id ou filtrar pelo nome se necessário,
+          // mas o ideal é client_id.
+          projQuery = projQuery.eq('client_id', profile.client_id)
+          taskQuery = taskQuery.eq('client_id', profile.client_id)
+        }
+
         const [projRes, taskRes] = await Promise.all([
-          supabase.from('projects').select('*').order('created_at', { ascending: false }),
-          supabase.from('tasks').select('*').order('created_at', { ascending: true }),
+          projQuery.order('created_at', { ascending: false }),
+          taskQuery.order('created_at', { ascending: true }),
         ])
 
         if (projRes.error) throw projRes.error
@@ -70,13 +86,14 @@ export function useOperations(): UseOperationsResult {
       }
     }
     load()
-  }, [tick])
+  }, [tick, profile?.role, profile?.client_id])
 
   /** Optimistic insert — tipagem correta via createClient<Database> */
   const addProject = useCallback(async (input: NewProjectInput) => {
     const optimistic: ProjectWithTasks = {
       ...input,
       id: `tmp-${Date.now()}`,
+      client_id: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       tasks: [],

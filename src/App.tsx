@@ -32,21 +32,50 @@ export default function App() {
                 <AppShell />
               </ProtectedRoute>
             }>
-              <Route index element={<Dashboard />} />
+              {/* Dashboard — ADMIN + MEMBER only; CLIENT → /nexus */}
+              <Route index element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']} redirectTo="/nexus">
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
 
-              {/* Comercial */}
+              {/* Comercial — ADMIN only; redirect others to / */}
               <Route path="comercial">
-                <Route path="leads" element={<LeadsPage />} />
-                <Route path="pipeline" element={<Pipeline />} />
-                <Route path="clientes" element={<Clients />} />
-                <Route path="clientes/:id" element={<ClientDetail />} />
+                <Route path="leads" element={
+                  <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/">
+                    <LeadsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="pipeline" element={
+                  <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/">
+                    <Pipeline />
+                  </ProtectedRoute>
+                } />
+                <Route path="clientes" element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']} redirectTo="/nexus">
+                    <Clients />
+                  </ProtectedRoute>
+                } />
+                <Route path="clientes/:id" element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']} redirectTo="/nexus">
+                    <ClientDetail />
+                  </ProtectedRoute>
+                } />
               </Route>
 
-              {/* Operação */}
+              {/* Operação — ADMIN + MEMBER only; CLIENT → /nexus */}
               <Route path="operacao">
                 <Route index element={<Navigate to="tarefas" replace />} />
-                <Route path="tarefas"  element={<Operations view="tarefas" />} />
-                <Route path="projetos" element={<Operations view="projetos" />} />
+                <Route path="tarefas" element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']} redirectTo="/nexus">
+                    <Operations view="tarefas" />
+                  </ProtectedRoute>
+                } />
+                <Route path="projetos" element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']} redirectTo="/nexus">
+                    <Operations view="projetos" />
+                  </ProtectedRoute>
+                } />
               </Route>
 
               {/* Financeiro — ADMIN only */}

@@ -1,12 +1,16 @@
-import { Bell, Search, ChevronDown, Zap } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Bell, Search, ChevronDown, Zap, LogOut } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
 import clsx from 'clsx'
 
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const { settings } = useSettings()
+  const { user, profile, isAdmin, signOut } = useAuth()
+  const navigate = useNavigate()
 
   const notifications = [
     { id: 1, title: 'SLA em Risco', desc: 'Projeto "Rebranding" vence em 2h', type: 'urgent' },
@@ -14,7 +18,17 @@ export function Header() {
     { id: 3, title: 'Fatura Atrasada', desc: 'Cliente "Vortex" com 2 dias de atraso', type: 'warning' },
   ]
 
-  const firstName = settings.user_name.split(' ')[0] || 'Usuário'
+  // Prefer real auth profile name, fallback to agency settings
+  const displayName  = profile?.full_name ?? settings.user_name ?? 'Usuário'
+  const firstName    = displayName.split(' ')[0]
+  const initials     = displayName.split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?'
+  const roleLabel    = profile?.role === 'ADMIN' ? 'Admin' : profile?.role === 'MEMBER' ? 'Membro' : profile?.role === 'CLIENT' ? 'Cliente' : null
+
+  async function handleSignOut() {
+    setShowUserMenu(false)
+    await signOut()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <header
@@ -114,27 +128,93 @@ export function Header() {
             </>
           )}
         </div>
-
-        {/* Avatar + Nome */}
-        <Link
-          to="/settings"
-          className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all"
-          style={{ border: '1px solid rgba(6,182,212,0.12)' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(6,182,212,0.06)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.3), rgba(124,58,237,0.3))', border: '1px solid rgba(6,182,212,0.2)' }}
+        {/* Sair Direto */}
+        {user && (
+          <button
+            onClick={handleSignOut}
+            className="p-2 rounded-xl transition-all text-red-400/60 hover:text-red-400 hover:bg-red-500/5 group"
+            title="Sair do sistema"
           >
-            {settings.logo_url
-              ? <img src={settings.logo_url} alt="Avatar" className="w-full h-full object-cover" />
-              : <Zap size={14} style={{ color: '#06b6d4' }} />
-            }
-          </div>
-          <span className="text-sm font-medium text-white hidden sm:block">{firstName}</span>
-          <ChevronDown size={13} style={{ color: 'var(--text-muted)' }} className="hidden sm:block" />
-        </Link>
+            <LogOut size={18} className="transition-transform group-hover:scale-110" />
+          </button>
+        )}
+
+        {/* Avatar + Nome + Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(v => !v)}
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all"
+            style={{ border: '1px solid rgba(6,182,212,0.12)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(6,182,212,0.06)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.3), rgba(124,58,237,0.3))', border: '1px solid rgba(6,182,212,0.2)' }}
+            >
+              {settings.logo_url
+                ? <img src={settings.logo_url} alt="Avatar" className="w-full h-full object-cover" />
+                : user
+                  ? <span style={{ fontSize: 11 }}>{initials}</span>
+                  : <Zap size={14} style={{ color: '#06b6d4' }} />
+              }
+            </div>
+            <div className="hidden sm:flex flex-col items-start leading-none gap-0.5">
+              <span className="text-sm font-medium text-white">{firstName}</span>
+              {roleLabel && (
+                <span className="text-[10px] font-semibold" style={{ color: 'rgba(6,182,212,0.7)' }}>{roleLabel}</span>
+              )}
+            </div>
+            <ChevronDown size={13} style={{ color: 'var(--text-muted)' }} className="hidden sm:block" />
+          </button>
+
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div
+                className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl z-50 overflow-hidden py-1"
+                style={{ background: 'rgba(4,8,20,0.97)', border: '1px solid rgba(6,182,212,0.12)', backdropFilter: 'blur(20px)' }}
+              >
+                {/* User info */}
+                <div className="px-4 py-3 mb-1" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">{profile?.email ?? ''}</p>
+                </div>
+
+                {/* Profile link */}
+                <Link
+                  to="/perfil"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all w-full"
+                >
+                  Meu Perfil
+                </Link>
+
+                {/* Settings link (admin only) */}
+                {isAdmin && (
+                  <Link
+                    to="/settings"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all w-full"
+                  >
+                    Configurações
+                  </Link>
+                )}
+
+                {/* Sign out — only when a real session exists */}
+                {user && (
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all w-full"
+                  >
+                    <LogOut size={14} />
+                    Sair
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   )

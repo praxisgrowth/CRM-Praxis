@@ -15,11 +15,223 @@ import {
   Check,
   X as CloseIcon,
   Hash,
+  Globe,
+  Lock,
+  AlertCircle,
+  KeyRound,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAudit } from '../hooks/useAudit'
 import type { Client } from '../lib/database.types'
 import { FinancialCard } from '../components/financial/FinancialCard'
+
+/* ─── Portal Access Modal ────────────────────────────────── */
+function PortalAccessModal({
+  client,
+  onClose,
+}: {
+  client: Client
+  onClose: () => void
+}) {
+  const [fullName, setFullName] = useState(client.name)
+  const [email,    setEmail]    = useState(client.email ?? '')
+  const [password, setPassword] = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+  const [success,  setSuccess]  = useState(false)
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 10,
+    color: '#e2e8f0',
+    padding: '10px 14px',
+    fontSize: 13,
+    outline: 'none',
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+    setError(null)
+    setLoading(true)
+
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('create-client-access', {
+        body: {
+          email:     email.trim(),
+          password,
+          full_name: fullName.trim(),
+          client_id: client.id,
+        },
+      })
+
+      if (fnErr) {
+        console.error('[Portal Access Error (HTTP)]:', fnErr)
+        throw fnErr
+      }
+
+      if (data?.error) {
+        console.error('[Portal Access Error (Business logic)]:', data.error)
+        setError(`[DEBUG] ${data.error}`)
+        return
+      }
+
+      setSuccess(true)
+    } catch (err: any) {
+      console.error('[Portal Submit Catch]:', err)
+      let msg = 'Erro ao criar acesso.'
+      if (err.context?.error) msg = `[DEBUG] Context: ${err.context.error}`
+      else if (err.message)   msg = `[DEBUG] Msg: ${err.message}`
+      
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-5"
+        style={{
+          background: 'rgba(8,14,30,0.98)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.6)',
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)' }}
+            >
+              <Globe size={16} className="text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Gerar Acesso ao Portal</p>
+              <p className="text-xs text-slate-500">{client.name}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300"
+            style={{ background: 'rgba(255,255,255,0.04)' }}
+          >
+            <CloseIcon size={14} />
+          </button>
+        </div>
+
+        {success ? (
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}
+            >
+              <Check size={24} className="text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Acesso criado com sucesso!</p>
+              <p className="text-xs text-slate-500 mt-1.5">
+                O cliente pode acessar o Portal Nexus com o e-mail <span className="text-indigo-300">{email}</span> e a senha definida.
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white mt-2"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+            >
+              Fechar
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Nome do cliente</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                style={inputStyle}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">E-mail de acesso</label>
+              <div className="relative">
+                <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  style={{ ...inputStyle, paddingLeft: 34 }}
+                  placeholder="email@cliente.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Senha inicial</label>
+              <div className="relative">
+                <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={{ ...inputStyle, paddingLeft: 34 }}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-slate-600">O cliente poderá alterar a senha após o primeiro acesso.</p>
+            </div>
+
+            {error && (
+              <div
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}
+              >
+                <AlertCircle size={12} />
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              >
+                {loading ? <Loader2 size={12} className="animate-spin" /> : <KeyRound size={12} />}
+                {loading ? 'Criando…' : 'Criar Acesso'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function fmtCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -39,10 +251,11 @@ export function ClientDetail() {
   const { logAction } = useAudit()
 
   // Edit states
-  const [editMode, setEditMode] = useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [saveErr,  setSaveErr]  = useState('')
-  const [form,     setForm]     = useState<Partial<Client>>({})
+  const [editMode,    setEditMode]    = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [saveErr,     setSaveErr]     = useState('')
+  const [form,        setForm]        = useState<Partial<Client>>({})
+  const [portalModal, setPortalModal] = useState(false)
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return }
@@ -120,6 +333,10 @@ export function ClientDetail() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {portalModal && (
+        <PortalAccessModal client={client} onClose={() => setPortalModal(false)} />
+      )}
+
       {/* ── Back + Header ────────────────────────────── */}
       <div className="flex flex-col gap-4">
         <Link
@@ -198,13 +415,23 @@ export function ClientDetail() {
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => setEditMode(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-400 border border-white/10 text-sm font-semibold hover:text-white transition-all"
-              >
-                <Pencil size={14} />
-                Editar Perfil
-              </button>
+              <>
+                <button
+                  onClick={() => setPortalModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
+                >
+                  <Globe size={14} />
+                  Gerar Acesso ao Portal
+                </button>
+                <button
+                  onClick={() => setEditMode(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-400 border border-white/10 text-sm font-semibold hover:text-white transition-all"
+                >
+                  <Pencil size={14} />
+                  Editar Perfil
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -1,9 +1,26 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { AIAssistant } from '../ai/AIAssistant'
+import { useAuth } from '../../contexts/AuthContext'
 
 export function AppShell() {
+  const { user, profile, loading } = useAuth()
+  const location = useLocation()
+
+  // While auth resolves, render nothing to avoid flash
+  if (loading) return null
+
+  // CLIENT role users have restricted access
+  if (user !== null && profile?.role === 'CLIENT') {
+    const allowedPaths = ['/nexus', '/universidade', '/perfil']
+    const isAllowed = allowedPaths.some(path => location.pathname.startsWith(path))
+    
+    if (!isAllowed) {
+      return <Navigate to="/nexus" replace />
+    }
+  }
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--color-bg-base)' }}>
       {/* Sidebar lateral fixa */}

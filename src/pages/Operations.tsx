@@ -9,6 +9,7 @@ import {
 import { useAudit }             from '../hooks/useAudit'
 import { useTeam }              from '../hooks/useTeam'
 import { useOperations }        from '../hooks/useOperations'
+import { useSectors }           from '../hooks/useSectors'
 import { useTaskManager }       from '../hooks/useTaskManager'
 import { NewProjectModal }      from '../components/operations/NewProjectModal'
 import { TaskFilters, DEFAULT_FILTERS } from '../components/operations/TaskFilters'
@@ -16,6 +17,7 @@ import { OperationsTable }      from '../components/operations/OperationsTable'
 import { TaskKanbanBoard }      from '../components/operations/TaskKanbanBoard'
 import { TaskDetailDrawer }     from '../components/operations/TaskDetailDrawer'
 import { NewTaskModal }         from '../components/operations/NewTaskModal'
+import { BatchLaunchModal }     from '../components/operations/BatchLaunchModal'
 import type { ProjectWithTasks } from '../hooks/useOperations'
 import type { TaskWithRelations } from '../hooks/useTaskManager'
 import type { TeamMember, ProjectStatus, TaskStatus } from '../lib/database.types'
@@ -91,7 +93,7 @@ function applyTaskFilters(
 }
 
 /* ─── Gear settings dropdown ── */
-function GearMenu() {
+function GearMenu({ onBatchLaunch }: { onBatchLaunch: () => void }) {
   const [open, setOpen] = useState(false)
   const ref             = useRef<HTMLDivElement>(null)
 
@@ -137,7 +139,7 @@ function GearMenu() {
             </div>
             <button
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all text-left"
-              onClick={() => { setOpen(false); alert('Em breve: Lançar Tarefas Padrão') }}
+              onClick={() => { setOpen(false); onBatchLaunch() }}
             >
               <Rocket size={14} style={{ color: '#6366f1', flexShrink: 0 }} />
               Lançar Tarefas Padrão
@@ -181,7 +183,9 @@ export function OperationsPage({ view }: Props) {
   const [editingProject, setEditingProject] = useState<ProjectWithTasks | null>(null)
   const [selectedTask, setSelectedTask]  = useState<TaskWithRelations | null>(null)
   const [taskFilters, setTaskFilters]    = useState<TaskFilterState>(DEFAULT_FILTERS)
+  const [showBatchLaunch, setShowBatchLaunch] = useState(false)
   const { members: teamMembers } = useTeam()
+  const sectors = useSectors()
 
   /* Build lookup maps */
   const projectMap = useMemo<Record<string, ProjectMeta>>(() =>
@@ -254,7 +258,7 @@ export function OperationsPage({ view }: Props) {
               </button>
             </div>
             {/* Gear */}
-            <GearMenu />
+            <GearMenu onBatchLaunch={() => setShowBatchLaunch(true)} />
           </div>
         </div>
 
@@ -323,6 +327,7 @@ export function OperationsPage({ view }: Props) {
             onChange={setTaskFilters}
             teamMembers={teamMembers}
             clients={uniqueClients}
+            sectors={sectors}
           />
         </div>
 
@@ -373,6 +378,13 @@ export function OperationsPage({ view }: Props) {
             }}
           />
         )}
+        {showBatchLaunch && (
+          <BatchLaunchModal
+            projects={projects}
+            onClose={() => setShowBatchLaunch(false)}
+            onDone={() => { refetchTask(); setShowBatchLaunch(false) }}
+          />
+        )}
         {liveSelectedTask && (
           <TaskDetailDrawer
             task={liveSelectedTask}
@@ -413,7 +425,7 @@ export function OperationsPage({ view }: Props) {
           >
             <Plus size={14} /> Novo Projeto
           </button>
-          <GearMenu />
+          <GearMenu onBatchLaunch={() => setShowBatchLaunch(true)} />
         </div>
       </div>
 
