@@ -44,15 +44,19 @@ export function NexusPortal() {
   const [submitting,   setSubmitting]   = useState(false)
   const [justDone,     setJustDone]     = useState<string | null>(null)
 
+  const [tasksDone,  setTasksDone]  = useState(0)
+  const [tasksTotal, setTasksTotal] = useState(0)
+
   useEffect(() => {
     if (!client_id) { setNotFound(true); setLoading(false); return }
 
     async function load() {
       setLoading(true)
 
-      const [clientRes, filesRes] = await Promise.all([
+      const [clientRes, filesRes, tasksRes] = await Promise.all([
         (supabase as any).from('clients').select('name').eq('id', client_id!).maybeSingle(),
         supabase.from('nexus_files').select('*').eq('client_id', client_id!).order('created_at', { ascending: false }),
+        (supabase as any).from('tasks').select('id, status').eq('client_id', client_id!),
       ])
 
       if (!clientRes.data) {
@@ -60,6 +64,9 @@ export function NexusPortal() {
       } else {
         setClientName(clientRes.data.name)
         setFiles((filesRes.data ?? []) as NexusFile[])
+        const allTasks = (tasksRes.data ?? []) as { id: string; status: string }[]
+        setTasksTotal(allTasks.length)
+        setTasksDone(allTasks.filter(t => t.status === 'done').length)
       }
 
       setLoading(false)
@@ -134,6 +141,27 @@ export function NexusPortal() {
             ? `Você tem ${pendingCount} item${pendingCount > 1 ? 's' : ''} aguardando sua revisão.`
             : 'Todos os itens foram revisados. Obrigado!'}
         </p>
+        {tasksTotal > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-slate-400">{tasksDone} de {tasksTotal} tarefas concluídas</span>
+              <span className="text-xs font-bold" style={{ color: '#00d2ff' }}>
+                {Math.round((tasksDone / tasksTotal) * 100)}%
+              </span>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 6, height: 6, overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${Math.round((tasksDone / tasksTotal) * 100)}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #00d2ff, #a855f7)',
+                  borderRadius: 6,
+                  transition: 'width 0.5s ease',
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats strip */}
