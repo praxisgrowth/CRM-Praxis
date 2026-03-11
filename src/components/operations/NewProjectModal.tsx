@@ -40,7 +40,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 interface Props {
   project?: ProjectWithTasks
   onClose: () => void
-  onSave: (data: NewProjectInput, launchTasks: boolean) => Promise<void>
+  onSave: (data: NewProjectInput, launchTasks?: boolean) => Promise<void>
 }
 
 export function NewProjectModal({ project, onClose, onSave }: Props) {

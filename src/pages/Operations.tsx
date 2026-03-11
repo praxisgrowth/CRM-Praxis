@@ -577,6 +577,7 @@ export function OperationsPage({ view }: Props) {
                 refetchTask()
               } catch (e) {
                 console.error('[Operations] Falha ao lançar tarefas padrão:', e)
+                // TODO: surface launch error to user via toast/notification
               }
             }
           }}
