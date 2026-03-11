@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, ChevronDown, Link2 } from 'lucide-react'
 import type { Lead } from '../../lib/database.types'
 import type { NewLeadInput } from '../../hooks/useLeads'
 
@@ -50,10 +50,13 @@ export function NewLeadModal({ onClose, onSave }: Props) {
   const [form, setForm] = useState<NewLeadInput>({
     name: '', email: null, phone: null,
     stage: 'prospeccao', score: 50, source: null,
+    utm_source: null, utm_medium: null, utm_campaign: null,
+    utm_content: null, utm_term: null,
   })
   const [saving, setSaving]   = useState(false)
   const [err, setErr]         = useState('')
   const [focus, setFocus]     = useState('')
+  const [utmOpen, setUtmOpen] = useState(false)
 
   function set<K extends keyof NewLeadInput>(key: K, val: NewLeadInput[K]) {
     setForm(f => ({ ...f, [key]: val }))
@@ -197,6 +200,55 @@ export function NewLeadModal({ onClose, onSave }: Props) {
               ))}
             </select>
           </Field>
+
+          {/* UTM / Rastreamento de Origem — colapsável */}
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <button
+              type="button"
+              onClick={() => setUtmOpen(o => !o)}
+              className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-white/[0.02]"
+            >
+              <span className="flex items-center gap-2 text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
+                <Link2 size={11} />
+                UTM / Origem da Campanha
+              </span>
+              <ChevronDown
+                size={12}
+                className="text-slate-600 transition-transform duration-200"
+                style={{ transform: utmOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              />
+            </button>
+
+            {utmOpen && (
+              <div className="px-3 pb-3 space-y-2 border-t border-white/[0.04]">
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {([
+                    ['utm_source',   'Source (ex: google)'],
+                    ['utm_medium',   'Medium (ex: cpc)'],
+                    ['utm_campaign', 'Campaign'],
+                    ['utm_content',  'Content'],
+                    ['utm_term',     'Term'],
+                  ] as [keyof NewLeadInput, string][]).map(([key, placeholder]) => (
+                    <div key={key} className={key === 'utm_campaign' || key === 'utm_term' ? 'col-span-2' : ''}>
+                      <label className="text-[10px] text-slate-600 font-medium uppercase tracking-wider block mb-1">
+                        {key.replace('utm_', '')}
+                      </label>
+                      <input
+                        className="w-full px-2.5 py-2 rounded-lg text-xs text-white placeholder-slate-700 outline-none transition-all"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                        placeholder={placeholder}
+                        value={(form[key] as string | null) ?? ''}
+                        onChange={e => set(key, e.target.value || null)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {err && <p className="text-xs text-red-400 px-1">{err}</p>}
 
