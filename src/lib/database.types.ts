@@ -33,6 +33,12 @@ export interface Lead {
   faturamento: string | null
   team_size:   string | null
   dores:       string | null
+  // ─── UTM Tracking (utm_migration.sql) ─────────────────────
+  utm_source:   string | null
+  utm_medium:   string | null
+  utm_campaign: string | null
+  utm_content:  string | null
+  utm_term:     string | null
   // ──────────────────────────────────────────────────────────
   client_id?: string | null
   created_at: string
