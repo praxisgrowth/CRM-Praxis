@@ -48,15 +48,28 @@ export function useSLAMetrics(): SLAMetrics {
         // ── Métrica 2: Tempo médio de aprovação do cliente ─────────────
         const { data: approvals, error: appErr } = await db
           .from('nexus_approvals')
-          .select('created_at, file_id, nexus_files(created_at)')
+          .select('created_at, file_id')
           .eq('action', 'aprovado')
 
         if (appErr) throw new Error(appErr.message)
 
+        const fileIds = [...new Set((approvals ?? []).map((a: any) => a.file_id).filter(Boolean))]
+
+        let fileCreatedAtMap: Record<string, string> = {}
+        if (fileIds.length > 0) {
+          const { data: filesData } = await db
+            .from('nexus_files')
+            .select('id, created_at')
+            .in('id', fileIds)
+          ;(filesData ?? []).forEach((f: { id: string; created_at: string }) => {
+            fileCreatedAtMap[f.id] = f.created_at
+          })
+        }
+
         const approvalHours = (approvals ?? [])
-          .filter((a: any) => a.nexus_files?.created_at)
+          .filter((a: any) => fileCreatedAtMap[a.file_id])
           .map((a: any) => {
-            const ms = new Date(a.created_at).getTime() - new Date(a.nexus_files.created_at).getTime()
+            const ms = new Date(a.created_at).getTime() - new Date(fileCreatedAtMap[a.file_id]).getTime()
             return ms / (1000 * 60 * 60)
           })
           .filter((h: number) => h >= 0)
