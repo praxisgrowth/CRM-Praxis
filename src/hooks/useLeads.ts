@@ -51,7 +51,7 @@ const FALLBACK_LEADS: Lead[] = [
 
 /* ─── Hook ───────────────────────────────────────── */
 export function useLeads(category?: 'crm' | 'social'): UseLeadsResult {
-  const [leads, setLeads] = useState<Lead[]>(FALLBACK_LEADS)
+  const [leads, setLeads] = useState<Lead[]>(category ? FALLBACK_LEADS.filter(l => l.category === category) : FALLBACK_LEADS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,6 +77,7 @@ export function useLeads(category?: 'crm' | 'social'): UseLeadsResult {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setError(msg)
+      setLeads(category ? FALLBACK_LEADS.filter(l => l.category === category) : FALLBACK_LEADS)
       console.error('[useLeads] Falha ao buscar leads, mantendo fallback:', msg)
     } finally {
       setLoading(false)
