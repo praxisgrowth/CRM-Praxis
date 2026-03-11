@@ -115,10 +115,11 @@ export function SDRQualification({ lead, onConverted }: Props) {
   }
 
   async function saveUTM(patch: Partial<Pick<Lead, 'utm_source' | 'utm_medium' | 'utm_campaign' | 'utm_content' | 'utm_term'>>) {
-    await (supabase as any)
+    const { error } = await (supabase as any)
       .from('leads')
       .update(patch)
       .eq('id', lead.id)
+    if (error) console.error('[SDRQualification] saveUTM error:', error.message)
   }
 
   async function handleStageChange(newStage: string) {
