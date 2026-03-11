@@ -3,6 +3,8 @@ import { MRRChart } from '../components/dashboard/MRRChart'
 import { AgencyHealthScore } from '../components/dashboard/AgencyHealthScore'
 import { ClientHealthList } from '../components/dashboard/ClientHealthList'
 import { useDashboard } from '../hooks/useDashboard'
+import { useAuth } from '../contexts/AuthContext'
+import { SLADashboard } from '../components/dashboard/SLADashboard'
 
 /* ─── KPI Card ───────────────────────────────────── */
 interface KPIStat {
@@ -83,6 +85,8 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => voi
 /* ─── Page ───────────────────────────────────────── */
 export function DashboardPage() {
   const { kpis, mrrHistory, clients, loading, error } = useDashboard()
+  const { profile } = useAuth()
+  const showSLA = profile?.role === 'ADMIN' || profile?.role === 'MEMBER'
 
   function handleRetry() { window.location.reload() }
 
@@ -141,6 +145,9 @@ export function DashboardPage() {
 
       {/* Client Health List */}
       <ClientHealthList clients={clients} loading={loading} />
+
+      {/* Performance & SLA — ADMIN/MEMBER only */}
+      {showSLA && <SLADashboard />}
     </div>
   )
 }
