@@ -1,4 +1,4 @@
-import { User, Mail, Phone, Globe, Briefcase, Target, Users, TrendingUp, Clock, UserPlus, Loader2, ChevronDown } from 'lucide-react'
+import { User, Mail, Phone, Globe, Briefcase, Target, Users, TrendingUp, Clock, UserPlus, Loader2, ChevronDown, Link2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type { Lead } from '../../lib/database.types'
 import { supabase } from '../../lib/supabase'
@@ -37,6 +37,11 @@ export function SDRQualification({ lead, onConverted }: Props) {
   const [faturamento,   setFaturamento]   = useState(lead.faturamento   ?? '')
   const [teamSize,      setTeamSize]      = useState(lead.team_size      ?? '')
   const [dores,         setDores]         = useState(lead.dores          ?? '')
+  const [utmSource,   setUtmSource]   = useState(lead.utm_source   ?? '')
+  const [utmMedium,   setUtmMedium]   = useState(lead.utm_medium   ?? '')
+  const [utmCampaign, setUtmCampaign] = useState(lead.utm_campaign ?? '')
+  const [utmContent,  setUtmContent]  = useState(lead.utm_content  ?? '')
+  const [utmTerm,     setUtmTerm]     = useState(lead.utm_term     ?? '')
   const [converting,    setConverting]    = useState(false)
   const [icpSaving,     setIcpSaving]     = useState(false)
   const [convertError,  setConvertError]  = useState<string | null>(null)
@@ -107,6 +112,13 @@ export function SDRQualification({ lead, onConverted }: Props) {
       .update(patch)
       .eq('id', lead.id)
     setIcpSaving(false)
+  }
+
+  async function saveUTM(patch: Partial<Pick<Lead, 'utm_source' | 'utm_medium' | 'utm_campaign' | 'utm_content' | 'utm_term'>>) {
+    await (supabase as any)
+      .from('leads')
+      .update(patch)
+      .eq('id', lead.id)
   }
 
   async function handleStageChange(newStage: string) {
@@ -233,6 +245,35 @@ export function SDRQualification({ lead, onConverted }: Props) {
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-purple-500/50 transition-all resize-none placeholder:text-slate-600"
             />
           </div>
+        </section>
+
+        {/* Rastreamento de Origem */}
+        <div className="px-4 py-2 border-y border-cyan-500/10 mb-2 flex items-center"
+          style={{ background: 'rgba(0,210,255,0.03)' }}>
+          <Link2 size={10} className="text-cyan-600 mr-2" />
+          <p className="text-[10px] text-cyan-600 font-bold uppercase tracking-widest">Rastreamento de Origem</p>
+        </div>
+
+        <section className="px-4 space-y-2 pb-3">
+          {([
+            ['utm_source',   utmSource,   setUtmSource,   'Source',   'ex: google'],
+            ['utm_medium',   utmMedium,   setUtmMedium,   'Medium',   'ex: cpc'],
+            ['utm_campaign', utmCampaign, setUtmCampaign, 'Campaign', 'ex: praxis-jan26'],
+            ['utm_content',  utmContent,  setUtmContent,  'Content',  'ex: banner-hero'],
+            ['utm_term',     utmTerm,     setUtmTerm,     'Term',     'ex: agencia-marketing'],
+          ] as [keyof Pick<Lead, 'utm_source'|'utm_medium'|'utm_campaign'|'utm_content'|'utm_term'>, string, React.Dispatch<React.SetStateAction<string>>, string, string][]).map(([key, val, setter, label, placeholder]) => (
+            <div key={key} className="flex flex-col gap-1">
+              <label className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider">{label}</label>
+              <input
+                type="text"
+                value={val}
+                onChange={e => setter(e.target.value)}
+                onBlur={e => saveUTM({ [key]: e.target.value.trim() || null })}
+                placeholder={placeholder}
+                className="w-full bg-white/[0.03] border border-white/[0.07] rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none focus:border-cyan-500/30 transition-all placeholder:text-slate-700"
+              />
+            </div>
+          ))}
         </section>
 
         {/* Histórico de Atividades — Timeline ao vivo */}
