@@ -55,8 +55,9 @@ const NAV_ITEMS: NavItem[] = [
     icon: Briefcase,
     allowedRoles: ['ADMIN'],
     children: [
-      { label: 'Leads',    to: '/comercial/leads' },
-      { label: 'Pipeline', to: '/comercial/pipeline' },
+      { label: 'Leads',         to: '/comercial/leads' },
+      { label: 'Pipeline',      to: '/comercial/pipeline' },
+      { label: 'Social Selling', to: '/comercial/social' },
     ],
   },
   {

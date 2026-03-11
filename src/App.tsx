@@ -4,6 +4,7 @@ import { NexusLayout } from './components/layout/NexusLayout'
 import { DashboardPage as Dashboard } from './pages/Dashboard'
 import { LeadsPage } from './pages/Leads'
 import { PipelinePage as Pipeline } from './pages/Pipeline'
+import { SocialSellingPage } from './pages/SocialSelling'
 import { ClientsPage as Clients } from './pages/Clients'
 import { ClientDetail } from './pages/ClientDetail'
 import { OperationsPage as Operations } from './pages/Operations'
@@ -50,6 +51,11 @@ export default function App() {
                 <Route path="pipeline" element={
                   <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/">
                     <Pipeline />
+                  </ProtectedRoute>
+                } />
+                <Route path="social" element={
+                  <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/">
+                    <SocialSellingPage />
                   </ProtectedRoute>
                 } />
                 <Route path="clientes" element={
