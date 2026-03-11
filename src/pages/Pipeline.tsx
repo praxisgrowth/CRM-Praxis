@@ -34,7 +34,7 @@ function formatBigValue(v: number) {
 
 /* ─── Page ───────────────────────────────────────── */
 export function PipelinePage() {
-  const { leads, loading, error, moveLead, addLead, deleteLead, refetch } = useLeads()
+  const { leads, loading, error, moveLead, addLead, deleteLead, refetch } = useLeads('crm')
   const [activeLead,   setActiveLead]   = useState<Lead | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showModal,    setShowModal]    = useState(false)
@@ -156,6 +156,7 @@ export function PipelinePage() {
       company:  data.company,
       value:    data.value,
       priority: data.priority,
+      category: 'crm',
     })
   }
 
