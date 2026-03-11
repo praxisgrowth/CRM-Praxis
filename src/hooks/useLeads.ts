@@ -18,6 +18,7 @@ export interface NewLeadInput {
   priority?: Priority | null
   tags?:     string[]
   client_id?: string | null
+  category?: 'crm' | 'social'
   // UTM tracking
   utm_source?:   string | null
   utm_medium?:   string | null
@@ -38,18 +39,18 @@ export interface UseLeadsResult {
 
 /* ─── Fallback ───────────────────────────────────── */
 const FALLBACK_LEADS: Lead[] = [
-  { id: '1', name: 'Construmax Engenharia', email: 'contato@construmax.com', phone: null, stage: 'proposta',    score: 94, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2024-10-15T00:00:00Z', updated_at: '2024-10-15T00:00:00Z' },
-  { id: '2', name: 'FinScale Ltda',         email: 'hello@finscale.io',      phone: null, stage: 'reuniao',     score: 88, source: 'Indicação',  title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2024-11-02T00:00:00Z', updated_at: '2024-11-02T00:00:00Z' },
-  { id: '3', name: 'Agro Dinâmico',         email: 'adm@agrodinamico.com',   phone: null, stage: 'negociacao',  score: 82, source: 'Evento',     title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2024-12-10T00:00:00Z', updated_at: '2024-12-10T00:00:00Z' },
-  { id: '4', name: 'Medbyte Health',        email: 'tech@medbyte.com',       phone: null, stage: 'prospeccao',  score: 71, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2025-01-05T00:00:00Z', updated_at: '2025-01-05T00:00:00Z' },
-  { id: '5', name: 'LogiSmart',             email: 'ops@logismart.com',      phone: null, stage: 'proposta',    score: 67, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2025-01-12T00:00:00Z', updated_at: '2025-01-12T00:00:00Z' },
-  { id: '6', name: 'CityFin',               email: 'cfo@cityfin.com',        phone: null, stage: 'reuniao',     score: 59, source: 'Outbound',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2025-01-20T00:00:00Z', updated_at: '2025-01-20T00:00:00Z' },
-  { id: '7', name: 'Ecopack Brasil',        email: 'eco@ecopack.com',        phone: null, stage: 'prospeccao',  score: 45, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2025-02-01T00:00:00Z', updated_at: '2025-02-01T00:00:00Z' },
-  { id: '8', name: 'Rápido Express',        email: 'ti@rapidoexpress.com',   phone: null, stage: 'prospeccao',  score: 38, source: 'Cold Email', title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, client_id: null, created_at: '2025-02-10T00:00:00Z', updated_at: '2025-02-10T00:00:00Z' },
+  { id: '1', name: 'Construmax Engenharia', email: 'contato@construmax.com', phone: null, stage: 'proposta',    score: 94, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2024-10-15T00:00:00Z', updated_at: '2024-10-15T00:00:00Z' },
+  { id: '2', name: 'FinScale Ltda',         email: 'hello@finscale.io',      phone: null, stage: 'reuniao',     score: 88, source: 'Indicação',  title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2024-11-02T00:00:00Z', updated_at: '2024-11-02T00:00:00Z' },
+  { id: '3', name: 'Agro Dinâmico',         email: 'adm@agrodinamico.com',   phone: null, stage: 'negociacao',  score: 82, source: 'Evento',     title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2024-12-10T00:00:00Z', updated_at: '2024-12-10T00:00:00Z' },
+  { id: '4', name: 'Medbyte Health',        email: 'tech@medbyte.com',       phone: null, stage: 'prospeccao',  score: 71, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2025-01-05T00:00:00Z', updated_at: '2025-01-05T00:00:00Z' },
+  { id: '5', name: 'LogiSmart',             email: 'ops@logismart.com',      phone: null, stage: 'proposta',    score: 67, source: 'LinkedIn',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2025-01-12T00:00:00Z', updated_at: '2025-01-12T00:00:00Z' },
+  { id: '6', name: 'CityFin',               email: 'cfo@cityfin.com',        phone: null, stage: 'reuniao',     score: 59, source: 'Outbound',   title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2025-01-20T00:00:00Z', updated_at: '2025-01-20T00:00:00Z' },
+  { id: '7', name: 'Ecopack Brasil',        email: 'eco@ecopack.com',        phone: null, stage: 'prospeccao',  score: 45, source: 'Site',       title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2025-02-01T00:00:00Z', updated_at: '2025-02-01T00:00:00Z' },
+  { id: '8', name: 'Rápido Express',        email: 'ti@rapidoexpress.com',   phone: null, stage: 'prospeccao',  score: 38, source: 'Cold Email', title: null, value: 0, priority: null, company: null, tags: [], faturamento: null, team_size: null, dores: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, utm_term: null, category: 'crm' as const, client_id: null, created_at: '2025-02-10T00:00:00Z', updated_at: '2025-02-10T00:00:00Z' },
 ]
 
 /* ─── Hook ───────────────────────────────────────── */
-export function useLeads(): UseLeadsResult {
+export function useLeads(category?: 'crm' | 'social'): UseLeadsResult {
   const [leads, setLeads] = useState<Lead[]>(FALLBACK_LEADS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,10 +61,14 @@ export function useLeads(): UseLeadsResult {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: sbErr } = await supabase
+      let query = supabase
         .from('leads')
         .select('*')
         .order('score', { ascending: false })
+
+      if (category) query = (query as any).eq('category', category)
+
+      const { data, error: sbErr } = await query
 
       if (sbErr) throw sbErr
 
@@ -76,7 +81,7 @@ export function useLeads(): UseLeadsResult {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [category])
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
 
@@ -104,6 +109,7 @@ export function useLeads(): UseLeadsResult {
       utm_campaign: input.utm_campaign ?? null,
       utm_content:  input.utm_content  ?? null,
       utm_term:     input.utm_term     ?? null,
+      category: input.category ?? 'crm',
       created_at:  new Date().toISOString(),
       updated_at:  new Date().toISOString(),
     }

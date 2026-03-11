@@ -41,6 +41,7 @@ export interface Lead {
   utm_term:     string | null
   // ──────────────────────────────────────────────────────────
   client_id?: string | null
+  category: 'crm' | 'social'
   created_at: string
   updated_at: string
 }
