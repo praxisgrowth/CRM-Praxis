@@ -48,7 +48,6 @@ function timeInStage(updatedAt: string): { label: string; color: string; isCold:
 export function DealCard({
   deal,
   onClick,
-  onDelete: _onDelete,
   isDragOverlay = false,
   bulkMode = false,
   checked = false,
@@ -102,7 +101,7 @@ export function DealCard({
           }
         }}
       >
-        {/* Header: Priority & Grip */}
+        {/* Header: Priority & Origin & Grip */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {bulkMode && (
@@ -121,6 +120,19 @@ export function DealCard({
             >
               {p.label}
             </span>
+
+            {/* Origem/Canal Badge */}
+            {(deal.utm_source || deal.source) && (
+              <span 
+                className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10"
+                style={{ 
+                  background: deal.utm_source ? 'rgba(0,210,255,0.1)' : 'rgba(255,255,255,0.05)',
+                  color:      deal.utm_source ? '#00d2ff' : '#94a3b8',
+                }}
+              >
+                {deal.utm_source ? `AD: ${deal.utm_source}` : deal.source}
+              </span>
+            )}
           </div>
 
           {/* Grip — visual affordance only; drag listeners are on outer div */}

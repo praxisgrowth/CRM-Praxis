@@ -6,7 +6,24 @@
       "Bash(curl:*)",
       "Bash(npm install:*)",
       "Bash(rm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(supabase:*)",
+      "Bash(where supabase:*)",
+      "Bash(npx supabase:*)",
+      "Read(//c/Users/gusta/.supabase/**)",
+      "Read(//c/Users/gusta/AppData/Roaming/supabase/**)",
+      "Read(//c/Users/gusta/Documents/Antigravity/CRM Praxis/$APPDATA/npm/**)",
+      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_cb649c23d771c272bc9a061b1103d62d0913c953\" npx supabase:*)",
+      "Bash(cd \"C:\\\\Users\\\\gusta\\\\Documents\\\\Antigravity\\\\CRM Praxis\" && npm test 2>&1 | head -20)",
+      "Bash(CLAUDE_PLUGIN_ROOT=\"C:/Users/gusta/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.0\" && bash \"$CLAUDE_PLUGIN_ROOT/lib/brainstorm-server/start-server.sh\" --project-dir \"C:/Users/gusta/Documents/Antigravity/CRM Praxis\")",
+      "Bash(cd \"C:/Users/gusta/Documents/Antigravity/CRM Praxis\" && ls src/hooks/use*.ts | head -20 && echo \"---\" && cat package.json | grep -E '\"test|vitest|jest')",
+      "Bash(cd \"C:\\\\Users\\\\gusta\\\\Documents\\\\Antigravity\\\\CRM Praxis\" && npx tsc --noEmit 2>&1; echo \"EXIT:$?\")",
+      "Bash(cd \"C:/Users/gusta/Documents/Antigravity/CRM Praxis\" && npx tsc --noEmit; echo \"tsc_exit=$?\")",
+      "Bash(cd \"C:/Users/gusta/Documents/Antigravity/CRM Praxis\" && npx tsc --noEmit 2>&1; echo \"EXIT:$?\")",
+      "Bash(find . -name \"*.ts\" -o -name \"*.tsx\" | xargs grep -l \"useNexus\\\\|handleAction\" | grep -v node_modules | head -10)",
+      "Bash(find ./src -name \"*operations*\" -type f | grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(find ./src/hooks -name \"*.ts\" | xargs ls -lah | head -20)",
+      "Bash(grep -r \"sla_percent\\\\|deadline\\\\|actual_hours\" ./supabase/*.sql | head -30)"
     ]
   }
 }

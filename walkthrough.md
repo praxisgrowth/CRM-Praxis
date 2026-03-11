@@ -1,38 +1,34 @@
-# Walkthrough - Refinamento Financeiro e Validação de Dados
+# Walkthrough - Gestão de Projetos & Onboarding (Fase 6)
 
-Nesta sessão, focamos em garantir a integridade dos dados críticos e na unificação da experiência financeira entre o CRM e o n8n.
+Nesta sessão, implementamos o robusto sistema de operação ágil, permitindo que a agência gerencie tarefas complexas e mensure a performance da equipe em tempo real.
 
 ## Mudanças Realizadas
 
-### 1. Validação de DDD Obrigatório (Fase 3c)
+### 1. Sistema de Projetos & Tarefas (Fase 6)
 
-Implementamos uma trava de segurança em todos os pontos de entrada de telefone no sistema. Agora, o sistema exige o DDD (mínimo 10 dígitos) para salvar qualquer contato, evitando falhas nas automações de WhatsApp:
+Refatoramos o núcleo operacional do CRM para suportar fluxos de onboarding automatizados:
 
-- [x] **Novos Leads** (`NewLeadModal.tsx`)
-- [x] **Novos Clientes** (`NewClientModal.tsx`)
-- [x] **Conversão/Faturamento** (`BillingOnboardingModal.tsx`)
-- [x] **Detalhes do Cliente** (`ClientDetail.tsx`)
-- [x] **SDR Workspace** (Quick Edit em `ClientDrawer.tsx`)
+- [x] **Arquitetura de Dados**: Implementação de `project_templates`, `tasks_v2`, `task_checklists`, `task_comments` e `task_attachments`.
+- [x] **Seed Data Literal**: Inserção das **48 tarefas padrão** do pacote "Google Ads Completo" com nomes 100% fiéis e lógica de dependência ativa.
+- [x] **Time Tracking**: Botão Play/Stop funcional que calcula `actual_hours` automaticamente e pausa ao mudar para status "Aguardando Cliente".
+- [x] **Interface Premium**:
+  - Toggle dinâmico entre **Lista** (visão de trabalho) e **Kanban** (visão de faturamento/status).
+  - **TaskDrawer**: Slide-over completo com checklists, central de anexos e feed de comentários.
+  - **Filtros Avançados**: Busca instantânea por Cliente, Responsável e Prazo.
 
-### 2. Unificação de Ações Financeiras (Fase 3d)
+### 2. Estabilidade & Build
 
-Refatoramos a forma como o CRM interage com o Asaas via n8n:
-
-- **Payload Completo:** As ações de "Adiar" agora enviam `client_name`, `client_phone`, `value` e `description`.
-- **Botão de 2ª Via:** Padronizado para apenas reenviar a notificação existente, removendo a confusão com alteração de data.
-- **Limpeza de Código:** Removidas as funções redundantes no `useBilling.ts`, centralizando tudo no hook `useFinancialActions.ts`.
-
-### 3. Verificação do Pipeline Dinâmico
-
-- Confirmamos que a alteração de estágio dentro do SDR Workspace já atualiza o Kanban automaticamente através do `handleStageChange` no `SDRQualification.tsx`.
+- [x] **TypeScript 5.9 Compatibility**: Ajustes de tipagem rigorosa realizados pelo Claude para garantir 0 erros de compilação.
+- [x] **Supabase Sync**: Sincronização de Schema e RLS validados.
 
 ## O que foi Testado
 
-- Validação de erro ao tentar salvar telefones sem DDD (ex: "99999-9999").
-- Verificação do envio de corpo JSON para o n8n nas ações de faturamento.
-- Revisão de integridade no `TODO.md` e `task.md`.
+- **Criação de Tarefa**: Testado o vínculo direto com o `client_id`.
+- **Timer**: Validação do cronômetro salvando no banco e acumulando horas após o "Stop".
+- **Dependências**: Bloqueio visual de tarefas que dependem de outras não concluídas.
+- **Build**: Execução de `npm run build` com sucesso (2470 módulos processados).
 
 ## Próximos Passos
 
-- **Fase 5: Portal Nexus:** Iniciar a fundação da área exclusiva para clientes (Módulo 5 do Roadmap).
-- **IA Assistente:** Integrar resumos automáticos de leads.
+- **Fase 5: Portal Nexus:** Iniciar a fundação da área exclusiva para clientes, agora vinculando as tarefas operacionais à visão do cliente.
+- **n8n Onboarding**: Configurar o gatilho final para clonar o template de 48 tarefas assim que um Lead for ganho no Pipeline.

@@ -12,9 +12,9 @@ Ações necessárias para destravar o módulo financeiro e operacional.
 - [x] **Módulo de Clientes — Refinamento de Onboarding**:
   - [x] Adicionar validação de CEP e preenchimento automático (ViaCEP).
   - [x] Garantir que CPF/CNPJ e Endereço sejam obrigatórios para sincronização.
-- [ ] **Módulo Financeiro — Controle de Sincronização**:
-  - [ ] [NEW] Implementar toggle "Sincronizar com Asaas" na criação de cobranças/assinaturas.
-  - [ ] [NEW] Permitir criação de cobranças apenas no banco de dados CRM (Manual).
+- [x] **Módulo Financeiro — Controle de Sincronização**:
+  - [x] [NEW] Implementar toggle "Sincronizar com Asaas" na criação de cobranças/assinaturas.
+  - [x] [NEW] Permitir criação de cobranças apenas no banco de dados CRM (Manual).
 - [x] **Automação de Conversão**:
   - [x] Vincular botão "Converter em Cliente" ao gatilho de criação no Asaas (via n8n).
   - [x] Debugar e finalizar workflow de disparos de cobrança.
@@ -44,7 +44,7 @@ Interface de alta conversão focada em velocidade e dados.
 - [x] **Global Drag & Drop**: Movimentação clicando em qualquer área do card.
 - [ ] **Cards Informativos**: Indicadores visuais no footer (Mensagem nova 🟢, Ligação hoje 🔵, Barra de SLA/Tempo parado).
 - [ ] **Ações em Massa**: Checkbox para disparar automações ou mudar tags em lote.
-- [ ] **Filtros de Origem**: Reorganização instantânea por canal (Google/Meta/Social Selling).
+- [x] **Filtros de Origem**: Reorganização instantânea por canal (Google/Meta/Social Selling).
 
 ### 1.3 Central de Voz & IA (Auditoria)
 
@@ -55,30 +55,36 @@ Interface de alta conversão focada em velocidade e dados.
 
 ## 🛠️ Módulo 2 · Operação & Gestão de Projetos
 
-- [ ] **Módulo 2: Gestão de Projetos & Onboarding (NOVO)**:
-  - [ ] **Arquitetura e Banco de Dados**:
-    - [ ] Criar tabelas `project_templates`, `tasks_v2`, `task_checklists`, `task_comments` e `task_attachments`.
-    - [ ] Migrar lógica da antiga tabela `tasks` para a nova estrutura.
-  - [ ] **Visão Geral da Equipe**:
-    - [ ] Implementar `ProjectManagerPage` com toggle Lista/Kanban.
-    - [ ] Criar filtros globais (Responsável, Cliente, Prazo, Status).
-  - [ ] **Time Tracking & Performance**:
-    - [ ] Botão Play/Stop com lógica de `current_timer_start`.
-    - [ ] Cálculo de `actual_hours` vs `estimated_hours`.
-    - [ ] Bloqueio automático ao mudar para status "Aguardando Cliente".
-  - [ ] **Editor de Templates (Admin)**:
-    - [ ] Interface para criar tarefas padrão por tipo de serviço.
-    - [ ] Definição de SLA (dias), prioridade e dependências.
-  - [ ] **Colaboração**:
-    - [ ] Sistema de Checklists internos.
-    - [ ] Feed de comentários e upload de anexos por tarefa.
+- [x] **Módulo 2: Gestão de Projetos & Onboarding (NOVO)**:
+  - [x] **Arquitetura e Banco de Dados**:
+    - [x] Criar tabelas `project_templates`, `tasks_v2`, `task_checklists`, `task_comments` e `task_attachments`.
+    - [x] Migrar lógica da antiga tabela `tasks` para a nova estrutura.
+  - [x] **Visão Geral da Equipe**:
+    - [x] Implementar `ProjectManagerPage` com toggle Lista/Kanban.
+    - [x] Criar filtros globais (Responsável, Cliente, Prazo, Status).
+  - [x] **Time Tracking & Performance**:
+    - [x] Botão Play/Stop com lógica de `current_timer_start`.
+    - [x] Cálculo de `actual_hours` vs `estimated_hours`.
+    - [x] Bloqueio automático ao mudar para status "Aguardando Cliente".
+  - [x] **Editor de Templates (Admin)**:
+    - [x] Interface para criar tarefas padrão por tipo de serviço.
+    - [x] Definição de SLA (dias), prioridade e dependências.
+  - [x] **Refinamento UI/UX Operação (Interface de Alta Performance)**:
+    - [x] **Navegação**: Submenus "Tarefas" e "Projetos" na Sidebar (sob "Operação").
+    - [x] **Configurações**: Ícone de engrenagem com atalhos para Gestão de Templates.
+    - [x] **Filtros (Listas Exatas)**:
+      - Setor: Implementação, GMN, Site, Traqueamento, Tráfego, Financeiro, Vendas, Supervisão.
+      - Prazo: Hoje, Amanhã, Esta Semana, Atrasadas, Futuras.
+      - Status: Concluída, Pendente, Bloqueada.
+    - [x] **Visual Lista**: Tabela operacional densa com colunas completas.
+    - [x] **Visual Kanban**: Cards minimalistas (Título, Cliente, Responsável, Cor de Prioridade).
 - [ ] **Kanban de Urgência (Ops)**: Organização por deadlines e prioridade crítica.
 - [x] **Visão 360° (Client Drawer)**: Abre ao clicar na linha/nome do lead (slide-over).
 - [x] **SDR Workspace (Tríplice Visualização)**:
   - [x] Coluna 1 (Playbook): Checklist D1-D6 + Scripts Dinâmicos.
   - [x] Coluna 2 (Chat Direto): Interface Omnichannel + Respostas Rápidas.
   - [x] Coluna 3 (CRM Data): Faturamento, Equipe e Botão API4com.
-- [ ] **Vínculo Lead-Anúncio**: Exibir UTM/Criativo de origem no card.
+- [x] **Vínculo Lead-Anúncio**: Exibir UTM/Criativo de origem no card.
 - [ ] **Transcrição & Nota IA**: Integração Whisper + Claude para auditoria de calls.
 - [ ] **Workflow Canvas (React Flow)**: Interface visual para desenhar réguas de automação.
 
@@ -110,24 +116,47 @@ Interface de alta conversão focada em velocidade e dados.
 
 ### 5.1 · Autenticação e Acesso Multi-Tenant
 
-- [ ] **Login de Cliente**: Criar rota pública `/portal/:client_id` com autenticação via Supabase Auth (e-mail + link mágico).
-- [ ] **Isolamento de Dados (RLS)**: Cada cliente enxerga **apenas** seus registros (via Row Level Security vinculada ao `client_id`).
-- [ ] **Contas Separadas do Painel Interno**: Nenhum cliente pode acessar as rotas do CRM (Pipeline, Operações, Financeiro).
-- [ ] **Gerenciamento de Clientes**: Tela interna para criar/convidar clientes via e-mail (a Praxis gera o acesso, o cliente acessa).
+- [x] **Acesso do Cliente (Login & Senha)**:
+  - [x] Implementar botão "Gerar Acesso ao Portal" dentro do Detalhe do Cliente.
+  - [x] Permitir que o Admin defina uma senha inicial (ou link mágico).
+  - [x] **Login do Sistema**: Criar página de login `/login` com design Neon Dark.
+- [x] **Infraestrutura de Convite**:
+  - [x] Criar e implantar Edge Function `invite-user` no Supabase para lidar com convites de Equipe (Membro/Admin).
+- [x] **Portal Nexus (Mirror View)**:
+  - [x] Botão "Ver como Cliente" para Admins e Membros da Equipe.
 
 ### 5.2 · Aprovação de Conteúdo (Pelo Cliente, Não Pela Praxis)
 
-- [ ] **Central de Aprovações**: O cliente é quem aprova ou solicita revisão — com botões "Aprovar ✅" e "Pedir Revisão 🔄".
-- [ ] **Comentários por Item**: Campo de texto livre onde o cliente explica o que deseja alterar.
-- [ ] **Notificação à Praxis**: Ao reprovar, o sistema notifica a equipe via WhatsApp/e-mail com o comentário do cliente.
-- [ ] **Status de Aprovação Visual**: Cada peça de conteúdo exibe badge: `Pendente`, `Aprovado`, `Em Revisão`.
+- [x] **Central de Aprovações**: O cliente é quem aprova ou solicita revisão — com botões "Aprovar ✅" e "Pedir Revisão 🔄".
+- [x] **Comentários por Item**: Campo de texto livre onde o cliente explica o que deseja alterar.
+- [x] **Notificação à Praxis**: Ao reprovar, o sistema notifica a equipe via WhatsApp/e-mail com o comentário do cliente.
+- [x] **Status de Aprovação Visual**: Cada peça de conteúdo exibe badge: `Pendente`, `Aprovado`, `Em Revisão`.
 
-### 5.3 · Experiência Premium do Cliente
+### 5.3 · Experiência Premium do Cliente (Fase 3)
 
 - [ ] **Onboarding Gamificado**: Barra de progresso com "Checks" automáticos de configuração.
 - [ ] **Nexus AI Tutor**: Chatbot interno que conhece o projeto e tira dúvidas do cliente.
 - [x] **Brand Folder**: Repositório central para manuais, fontes e logotipos.
 - [x] **Nexus Timeline**: Linha do tempo sincronizada com a Operação interna.
+- [x] **Barra de Progresso**: Visualização real-time do % de conclusão do projeto.
+- [x] **Aprovação de Entregáveis**: Sistema de cards com Aprovar/Ajustar/Dúvida.
+- [ ] **Sugerir Ideia**: Botão para o cliente enviar novos briefings do zero.
+
+---
+
+## 🚀 Fase 4 · Nexus Avançado (Próximos Passos)
+
+Evolução para automação total e métricas de desempenho.
+
+- [ ] **Notificações Ativas (n8n)**:
+  - [ ] Preparar webhooks no Supabase disparados por mudanças de status de entregáveis.
+  - [ ] Fluxo n8n para avisar equipe no WhatsApp quando o cliente pedir ajuste ou dúvida.
+- [ ] **Magic Links (Segurança)**:
+  - [ ] Implementar login via e-mail sem senha para facilitar acesso do cliente.
+- [ ] **Versionamento de Entregáveis**:
+  - [ ] Estrutura para salvar histórico (V1, V2) de artes e copies após revisões.
+- [x] **Dashboard de SLA**:
+  - [x] Painel interno para medir tempo médio de resposta da agência vs. tempo de aprovação do cliente.
 
 ---
 
@@ -138,11 +167,12 @@ Interface de alta conversão focada em velocidade e dados.
 ### 6.1 · Entrada & Qualificação Inicial
 
 - [ ] **Novo formulário recebido** (Site / Typebot / Facebook Leads)
-  - Cria card na coluna "Base".
-  - Se tag = "High Ticket" → move direto para "Prospecção" + notifica SDR no WhatsApp.
-- [ ] **Palavra-chave no Instagram** (ex: "QUERO" em comentário)
-  - Cria card na coluna "Social Selling".
-  - Abre Drawer com script de abordagem inicial pré-carregado.
+  - [ ] [n8n] Configurar webhook de entrada para criar card na coluna "Base".
+  - [ ] Se tag = "High Ticket" → move direto para "Prospecção" + notifica SDR no WhatsApp.
+- [x] **Palavra-chave no Instagram** (ex: "QUERO" em comentário)
+  - [x] [UI] Criar card na coluna "Social Selling" (Concluído).
+  - [ ] [n8n] Configurar workflow para escutar comentários/curtidas via Evolution API.
+  - [x] [UI] Abrir Drawer com script de abordagem inicial pré-carregado.
 
 ### 6.2 · Fluxo de Prospecção (Acompanhamento)
 
@@ -179,6 +209,19 @@ Interface de alta conversão focada em velocidade e dados.
         ..
 - [x] **Impedir dupla conversão de Lead no Pipeline**: Resolvido via `client_id` idempotency.
 - [x] **Dropdown de Serviços**: Substituído texto livre por lista pré-definida no Pipeline e Lead Modal.
+
+- [ ] **Módulo de Equipe & RBAC (Segurança)**:
+  - [x] **Database**: Criar tabela `profiles` extendendo `auth.users`.
+  - [x] **Gestão**: Nova tela de "Equipe" para gerenciar membros e cargos.
+  - [x] **Segurança**: Bloqueio de menus sensíveis (Financeiro/Comercial/Config) para Membros.
+  - [x] **Cliente**: Bloqueio total (apenas Nexus/Universidade) para Clientes.
+  - [x] **Edge Function**: Implementar `invite-user` para evitar uso do dashboard do Supabase.
+  - [x] **Login**: Página de Login personalizada.
+
+- [x] **Integração de Inteligência (Tarefas Avançadas)**:
+  - [ ] **Lógica**: Implementar desbloqueio de tarefas dependentes em cascata.
+  - [x] **Lançamento**: Sistema de Lançamento em Lote para combos de tarefas.
+  - [x] **Visual**: Visão por Cliente com Barra de Progresso do Projeto.
 
 ---
 

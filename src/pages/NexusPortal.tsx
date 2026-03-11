@@ -1,11 +1,10 @@
-import { useParams } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+// src/pages/NexusPortal.tsx
+import { useState } from 'react'
 import {
   CheckCircle2, Loader2, Globe, ImageIcon, FileText,
-  Video, File, Pencil, HelpCircle, PlusCircle, Check, X,
+  Video, File, Pencil, HelpCircle, Check, X,
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import type { NexusFile, NexusFileType, NexusFileStatus, ApprovalAction } from '../lib/database.types'
+import { useNexus, type NexusFileStatus, type NexusFileType } from '../hooks/useNexus'
 
 const TYPE_CONFIG: Record<NexusFileType, { icon: React.ElementType; color: string; label: string }> = {
   imagem:    { icon: ImageIcon, color: '#6366f1', label: 'Imagem'    },
@@ -21,86 +20,33 @@ const STATUS_CONFIG: Record<NexusFileStatus, { color: string; bg: string; label:
   duvida:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Em Dúvida'  },
 }
 
-const ACTIONS: {
-  action: ApprovalAction; label: string
-  icon: React.ElementType; color: string; border: string
-}[] = [
-  { action: 'aprovado', label: 'Aprovar',  icon: CheckCircle2, color: '#10b981', border: 'rgba(16,185,129,0.3)' },
-  { action: 'ajuste',   label: 'Ajuste',   icon: Pencil,       color: '#f97316', border: 'rgba(249,115,22,0.3)'  },
-  { action: 'duvida',   label: 'Dúvida',   icon: HelpCircle,   color: '#3b82f6', border: 'rgba(59,130,246,0.3)'  },
-  { action: 'sugestao', label: 'Sugerir',  icon: PlusCircle,   color: '#8b5cf6', border: 'rgba(139,92,246,0.3)'  },
-]
-
 export function NexusPortal() {
-  const { client_id } = useParams<{ client_id: string }>()
+  const { 
+    files, 
+    team, 
+    loading, 
+    error, 
+    approveFile, 
+    requestAdjustment 
+  } = useNexus()
 
-  const [files,      setFiles]      = useState<NexusFile[]>([])
-  const [clientName, setClientName] = useState<string | null>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [notFound,   setNotFound]   = useState(false)
-
-  const [activeAction, setActiveAction] = useState<{ fileId: string; action: ApprovalAction } | null>(null)
+  const [activeAction, setActiveAction] = useState<{ fileId: string; type: 'approve' | 'adjust' } | null>(null)
   const [comment,      setComment]      = useState('')
   const [submitting,   setSubmitting]   = useState(false)
-  const [justDone,     setJustDone]     = useState<string | null>(null)
-
-  const [tasksDone,  setTasksDone]  = useState(0)
-  const [tasksTotal, setTasksTotal] = useState(0)
-
-  useEffect(() => {
-    if (!client_id) { setNotFound(true); setLoading(false); return }
-
-    async function load() {
-      setLoading(true)
-
-      const [clientRes, filesRes, tasksRes] = await Promise.all([
-        (supabase as any).from('clients').select('name').eq('id', client_id!).maybeSingle(),
-        supabase.from('nexus_files').select('*').eq('client_id', client_id!).order('created_at', { ascending: false }),
-        (supabase as any).from('tasks').select('id, status').eq('client_id', client_id!),
-      ])
-
-      if (!clientRes.data) {
-        setNotFound(true)
-      } else {
-        setClientName(clientRes.data.name)
-        setFiles((filesRes.data ?? []) as NexusFile[])
-
-        if (tasksRes.error) {
-          console.error('[NexusPortal] tasks query failed:', tasksRes.error.message)
-        }
-        const allTasks = (tasksRes.data ?? []) as { id: string; status: string }[]
-        setTasksTotal(allTasks.length)
-        setTasksDone(allTasks.filter(t => t.status === 'done').length)
-      }
-
-      setLoading(false)
-    }
-
-    load()
-  }, [client_id])
 
   async function handleConfirm() {
     if (!activeAction) return
     setSubmitting(true)
 
-    const newStatus: NexusFileStatus = activeAction.action === 'sugestao' ? 'duvida' : activeAction.action as NexusFileStatus
+    if (activeAction.type === 'approve') {
+      await approveFile(activeAction.fileId, comment)
+    } else {
+      await requestAdjustment(activeAction.fileId, comment)
+    }
 
-    await Promise.all([
-      (supabase as any).from('nexus_files').update({ status: newStatus }).eq('id', activeAction.fileId),
-      (supabase as any).from('nexus_approvals').insert({
-        file_id:     activeAction.fileId,
-        action:      activeAction.action,
-        comment:     comment || null,
-        client_name: clientName,
-      }),
-    ])
-
-    setFiles(prev => prev.map(f => f.id === activeAction.fileId ? { ...f, status: newStatus } : f))
-    setJustDone(activeAction.fileId)
     setActiveAction(null)
     setComment('')
     setSubmitting(false)
-    setTimeout(() => setJustDone(null), 5000)
   }
 
   if (loading) {
@@ -111,17 +57,17 @@ export function NexusPortal() {
     )
   }
 
-  if (notFound) {
+  if (error) {
     return (
       <div className="text-center py-24">
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)' }}
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)' }}
         >
-          <Globe size={26} className="text-indigo-500 opacity-60" />
+          <Globe size={26} className="text-red-500 opacity-60" />
         </div>
-        <h2 className="text-lg font-semibold text-white mb-2">Portal não encontrado</h2>
-        <p className="text-sm text-slate-500">Verifique o link enviado pela equipe e tente novamente.</p>
+        <h2 className="text-lg font-semibold text-white mb-2">Erro ao carregar portal</h2>
+        <p className="text-sm text-slate-500">{error}</p>
       </div>
     )
   }
@@ -129,48 +75,31 @@ export function NexusPortal() {
   const pendingCount = files.filter(f => f.status === 'pendente').length
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Welcome banner */}
       <div
-        className="rounded-2xl p-6"
+        className="rounded-2xl p-6 relative overflow-hidden"
         style={{
           background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.06))',
           border: '1px solid rgba(99,102,241,0.2)',
         }}
       >
-        <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-1">Portal do Cliente</p>
-        <h1 className="text-2xl font-bold text-white mb-1">{clientName}</h1>
-        <p className="text-sm text-slate-400">
-          {pendingCount > 0
-            ? `Você tem ${pendingCount} item${pendingCount > 1 ? 's' : ''} aguardando sua revisão.`
-            : 'Todos os itens foram revisados. Obrigado!'}
-        </p>
-        {tasksTotal > 0 && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-slate-400">{tasksDone} de {tasksTotal} tarefas concluídas</span>
-              <span className="text-xs font-bold" style={{ color: '#00d2ff' }}>
-                {Math.round((tasksDone / tasksTotal) * 100)}%
-              </span>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 6, height: 6, overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${Math.round((tasksDone / tasksTotal) * 100)}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, #00d2ff, #a855f7)',
-                  borderRadius: 6,
-                  transition: 'width 0.5s ease',
-                }}
-              />
-            </div>
-          </div>
-        )}
+        <div className="relative z-10">
+          <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-1">Portal do Cliente</p>
+          <h1 className="text-2xl font-bold text-white mb-1">Área Exclusiva</h1>
+          <p className="text-sm text-slate-400">
+            {pendingCount > 0
+              ? `Você tem ${pendingCount} item${pendingCount > 1 ? 's' : ''} aguardando sua revisão.`
+              : 'Todos os materiais estão atualizados. Obrigado pela parceria!'}
+          </p>
+        </div>
+        {/* Abstract decoration */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl -mr-16 -mt-16 rounded-full" />
       </div>
 
       {/* Stats strip */}
       {files.length > 0 && (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {([
             { label: 'Pendentes', status: 'pendente' as NexusFileStatus, color: '#f59e0b' },
             { label: 'Aprovados', status: 'aprovado' as NexusFileStatus, color: '#10b981' },
@@ -179,173 +108,171 @@ export function NexusPortal() {
           ]).map(s => (
             <div
               key={s.label}
-              className="rounded-xl px-4 py-3 text-center"
+              className="rounded-xl px-4 py-3 text-center transition-all hover:scale-[1.02]"
               style={{ background: `${s.color}08`, border: `1px solid ${s.color}18` }}
             >
               <p className="text-2xl font-bold tabular-nums" style={{ color: s.color }}>
                 {files.filter(f => f.status === s.status).length}
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+              <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5 tracking-wider">{s.label}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Empty state */}
-      {files.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-slate-500 text-sm">Nenhum arquivo disponível no momento.</p>
-          <p className="text-xs text-slate-600 mt-1">A equipe enviará os materiais em breve.</p>
-        </div>
-      )}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Deliverables Area */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+              <ImageIcon size={16} className="text-indigo-400" />
+              Entregáveis para Aprovação
+            </h3>
+          </div>
 
-      {/* Files grid */}
-      {files.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {files.map(file => {
-            const typeConf   = TYPE_CONFIG[file.type]
-            const statusConf = STATUS_CONFIG[file.status]
-            const TypeIcon   = typeConf.icon
-            const isActive   = activeAction?.fileId === file.id
-            const isDone     = justDone === file.id
-            const activeAct  = ACTIONS.find(a => a.action === activeAction?.action)
+          {files.length === 0 ? (
+            <div className="text-center py-20 glass rounded-2xl">
+              <p className="text-slate-500 text-sm italic">Nenhum arquivo disponível para aprovação no momento.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {files.map(file => {
+                const typeConf   = TYPE_CONFIG[file.type]
+                const statusConf = STATUS_CONFIG[file.status]
+                const TypeIcon   = typeConf.icon
+                const isActive   = activeAction?.fileId === file.id
 
-            return (
-              <div
-                key={file.id}
-                className="rounded-2xl overflow-hidden flex flex-col transition-all duration-200"
-                style={{
-                  background: 'rgba(255,255,255,0.025)',
-                  border: isActive
-                    ? `1px solid ${activeAct?.border ?? 'rgba(255,255,255,0.12)'}`
-                    : '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                {/* Preview area */}
-                <div
-                  className="relative h-32 flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: `linear-gradient(135deg, ${typeConf.color}18 0%, ${typeConf.color}06 100%)`,
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  }}
-                >
+                return (
                   <div
-                    className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold"
-                    style={{ background: statusConf.bg, color: statusConf.color, border: `1px solid ${statusConf.color}33` }}
+                    key={file.id}
+                    className="rounded-2xl overflow-hidden flex flex-col transition-all duration-300 glass hover:border-indigo-500/30 group"
+                    style={{ border: isActive ? `1px solid ${statusConf.color}40` : '1px solid rgba(255,255,255,0.06)' }}
                   >
-                    {statusConf.label}
-                  </div>
-                  <div
-                    className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg"
-                    style={{ background: `${typeConf.color}22`, border: `1px solid ${typeConf.color}33` }}
-                  >
-                    <TypeIcon size={10} style={{ color: typeConf.color }} />
-                    <span className="text-[10px] font-semibold" style={{ color: typeConf.color }}>{typeConf.label}</span>
-                  </div>
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: `${typeConf.color}20`, border: `1px solid ${typeConf.color}30` }}
-                  >
-                    <TypeIcon size={20} style={{ color: typeConf.color }} />
-                  </div>
-                </div>
-
-                {/* Card body */}
-                <div className="p-4 flex flex-col gap-3 flex-1">
-                  <div>
-                    <p className="text-sm font-semibold text-white leading-snug">{file.title}</p>
-                    {file.description && (
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{file.description}</p>
-                    )}
-                  </div>
-
-                  {/* Success feedback */}
-                  {isDone && !isActive && (
+                    {/* Preview area */}
                     <div
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
-                      style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399' }}
+                      className="relative h-40 flex items-center justify-center flex-shrink-0"
+                      style={{ background: `linear-gradient(135deg, ${typeConf.color}10 0%, transparent 100%)` }}
                     >
-                      <Check size={11} />
-                      Feedback registrado! Obrigado.
-                    </div>
-                  )}
-
-                  {/* Pending actions */}
-                  {file.status === 'pendente' && !isActive && !isDone && (
-                    <div className="grid grid-cols-2 gap-2 mt-auto">
-                      {ACTIONS.map(({ action, label, icon: Icon, color, border }) => (
-                        <button
-                          key={action}
-                          onClick={() => setActiveAction({ fileId: file.id, action })}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-95"
-                          style={{ background: `${color}10`, border: `1px solid ${border}`, color }}
-                        >
-                          <Icon size={12} />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Already decided */}
-                  {file.status !== 'pendente' && !isActive && !isDone && (
-                    <div
-                      className="mt-auto flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-                      style={{ background: statusConf.bg, color: statusConf.color, border: `1px solid ${statusConf.color}30` }}
-                    >
-                      <CheckCircle2 size={13} />
-                      Decisão registrada: {statusConf.label}
-                    </div>
-                  )}
-
-                  {/* Inline confirm form */}
-                  {isActive && activeAct && (
-                    <div className="mt-auto space-y-2.5">
                       <div
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-                        style={{ background: `${activeAct.color}12`, color: activeAct.color, border: `1px solid ${activeAct.border}` }}
+                        className="absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider"
+                        style={{ background: statusConf.bg, color: statusConf.color, border: `1px solid ${statusConf.color}33` }}
                       >
-                        <activeAct.icon size={12} />
-                        {activeAct.label} selecionado
+                        {statusConf.label}
                       </div>
-                      <textarea
-                        value={comment}
-                        onChange={e => setComment(e.target.value)}
-                        placeholder={
-                          activeAction?.action === 'sugestao'
-                            ? 'Descreva a sugestão… (obrigatório)'
-                            : 'Adicione um comentário (opcional)…'
-                        }
-                        rows={3}
-                        className="w-full rounded-xl px-3 py-2 text-xs text-slate-300 resize-none outline-none transition-all"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleConfirm}
-                          disabled={submitting || (activeAction?.action === 'sugestao' && !comment.trim())}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40"
-                          style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff' }}
-                        >
-                          {submitting ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                          Confirmar
-                        </button>
-                        <button
-                          onClick={() => { setActiveAction(null); setComment('') }}
-                          className="w-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-300 transition-colors"
-                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
+
+                      <TypeIcon size={40} style={{ color: typeConf.color }} className="opacity-40 group-hover:scale-110 transition-transform duration-500" />
                     </div>
-                  )}
+
+                    {/* Card body */}
+                    <div className="p-5 flex flex-col gap-4 flex-1">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                           <TypeIcon size={12} style={{ color: typeConf.color }} />
+                           <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">{typeConf.label}</span>
+                        </div>
+                        <p className="text-sm font-bold text-white leading-snug">{file.title}</p>
+                        {file.description && (
+                          <p className="text-xs text-slate-500 mt-2 leading-relaxed">{file.description}</p>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      {file.status === 'pendente' && !isActive && (
+                        <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
+                          <button
+                            onClick={() => setActiveAction({ fileId: file.id, type: 'approve' })}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                          >
+                            <CheckCircle2 size={13} /> Aprovar
+                          </button>
+                          <button
+                            onClick={() => setActiveAction({ fileId: file.id, type: 'adjust' })}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20"
+                          >
+                            <Pencil size={13} /> Ajuste
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Action Form */}
+                      {isActive && (
+                        <div className="mt-auto space-y-3 pt-2">
+                          <textarea
+                            value={comment}
+                            onChange={e => setComment(e.target.value)}
+                            placeholder={activeAction.type === 'approve' ? "Comentário adicional (opcional)" : "Descreva o que precisa ser ajustado..."}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500/40"
+                            rows={3}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleConfirm}
+                              disabled={submitting || (activeAction.type === 'adjust' && !comment.trim())}
+                              className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50"
+                              style={{ background: activeAction.type === 'approve' ? '#10b981' : '#f97316' }}
+                            >
+                              {submitting ? <Loader2 size={12} className="animate-spin" /> : 'Confirmar'}
+                            </button>
+                            <button
+                              onClick={() => { setActiveAction(null); setComment('') }}
+                              className="px-3 py-2 rounded-xl text-slate-500 hover:text-white transition-colors glass"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {file.status !== 'pendente' && !isActive && (
+                         <div className="mt-auto pt-2 flex items-center gap-2 text-[10px] font-bold text-slate-500 italic uppercase">
+                            <Check size={12} /> Decisão registrada
+                         </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar: Praxis Team */}
+        <div className="space-y-6">
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <HelpCircle size={16} className="text-indigo-400" />
+            Sua Equipe Praxis
+          </h3>
+          <div className="space-y-3">
+            {team.map(member => (
+              <div 
+                key={member.id} 
+                className="glass rounded-2xl p-4 flex items-center gap-3 border border-white/5 group hover:border-indigo-500/20 transition-all"
+              >
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-indigo-400"
+                  style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
+                >
+                  {member.initials || '??'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-white truncate group-hover:text-indigo-400 transition-colors">{member.name}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{member.role || 'Estrategista'}</p>
                 </div>
               </div>
-            )
-          })}
+            ))}
+            {team.length === 0 && <p className="text-xs text-slate-600 text-center italic">Carregando especialistas...</p>}
+          </div>
+
+          <div className="rounded-2xl p-5 bg-indigo-500/5 border border-indigo-500/10 space-y-3">
+             <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Suporte Direto</p>
+             <p className="text-xs text-slate-400 leading-relaxed">Dúvidas sobre o projeto? Entre em contato pelo WhatsApp da nossa equipe.</p>
+             <button className="w-full py-2.5 rounded-xl bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/20 text-[10px] font-bold uppercase hover:bg-[#25D366]/20 transition-all">
+                Abrir WhatsApp
+             </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
