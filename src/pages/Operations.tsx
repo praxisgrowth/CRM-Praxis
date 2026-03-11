@@ -24,6 +24,7 @@ import type { TaskWithRelations } from '../hooks/useTaskManager'
 import type { TeamMember, ProjectStatus, TaskStatus } from '../lib/database.types'
 import type { TaskFilterState } from '../components/operations/TaskFilters'
 import type { ProjectMeta } from '../components/operations/OperationsTable'
+import { launchTemplateTasks } from '../lib/launchTemplateTasks'
 
 /* ─── Project card helpers ── */
 type StatusFilter = ProjectStatus | 'todos'
@@ -567,9 +568,17 @@ export function OperationsPage({ view }: Props) {
       {showNewProject && (
         <NewProjectModal
           onClose={() => setShowNewProject(false)}
-          onSave={async data => {
-            await addProject(data)
-            await logAction('Create Project', 'project', 'new', data as unknown as Record<string, unknown>)
+          onSave={async (data, launchTasks) => {
+            const newId = await addProject(data)
+            await logAction('Create Project', 'project', newId, data as unknown as Record<string, unknown>)
+            if (launchTasks) {
+              try {
+                await launchTemplateTasks(newId, null)
+                refetchTask()
+              } catch (e) {
+                console.error('[Operations] Falha ao lançar tarefas padrão:', e)
+              }
+            }
           }}
         />
       )}

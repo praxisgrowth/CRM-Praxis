@@ -23,7 +23,7 @@ export interface UseOperationsResult {
   loading: boolean
   error: string | null
   refetch: () => void
-  addProject: (data: NewProjectInput) => Promise<void>
+  addProject: (data: NewProjectInput) => Promise<string>
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>
   deleteProject: (id: string) => Promise<void>
 }
@@ -117,6 +117,7 @@ export function useOperations(): UseOperationsResult {
       prev.map(p => p.id === optimistic.id ? { ...(data as Project), tasks: [] } : p)
     )
     console.info('[useOperations] Projeto persistido com ID:', (data as any).id)
+    return (data as any).id
   }, [])
 
   const updateProject = useCallback(async (id: string, updates: Partial<Project>) => {

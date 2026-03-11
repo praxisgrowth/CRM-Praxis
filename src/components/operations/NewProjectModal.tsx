@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, Rocket } from 'lucide-react'
 import type { Project } from '../../lib/database.types'
 import type { NewProjectInput, ProjectWithTasks } from '../../hooks/useOperations'
 
@@ -40,7 +40,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 interface Props {
   project?: ProjectWithTasks
   onClose: () => void
-  onSave: (data: NewProjectInput) => Promise<void>
+  onSave: (data: NewProjectInput, launchTasks: boolean) => Promise<void>
 }
 
 export function NewProjectModal({ project, onClose, onSave }: Props) {
@@ -53,6 +53,7 @@ export function NewProjectModal({ project, onClose, onSave }: Props) {
     due_date:     project?.due_date || null,
   })
   const [saving, setSaving] = useState(false)
+  const [launchTasks, setLaunchTasks] = useState(true)
   const [err, setErr]       = useState('')
   const [focus, setFocus]   = useState('')
 
@@ -66,7 +67,7 @@ export function NewProjectModal({ project, onClose, onSave }: Props) {
     if (!form.client_name.trim()) { setErr('O nome do cliente é obrigatório.'); return }
     setSaving(true); setErr('')
     try {
-      await onSave(form)
+      await onSave(form, launchTasks)
       onClose()
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Erro ao salvar projeto.')
@@ -181,6 +182,33 @@ export function NewProjectModal({ project, onClose, onSave }: Props) {
               ))}
             </div>
           </Field>
+
+          {!project && (
+            <button
+              type="button"
+              onClick={() => setLaunchTasks(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all duration-200"
+              style={
+                launchTasks
+                  ? { background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }
+                  : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#475569' }
+              }
+            >
+              <span className="flex items-center gap-2">
+                <Rocket size={13} />
+                Lançar tarefas padrão
+              </span>
+              <span
+                className="w-8 h-4 rounded-full relative transition-all duration-200 flex-shrink-0"
+                style={{ background: launchTasks ? '#6366f1' : 'rgba(255,255,255,0.1)' }}
+              >
+                <span
+                  className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all duration-200"
+                  style={{ left: launchTasks ? '17px' : '2px' }}
+                />
+              </span>
+            </button>
+          )}
 
           {err && <p className="text-xs text-red-400 px-1">{err}</p>}
 
