@@ -14,11 +14,16 @@ const db = _supabase as unknown as { from(t: string): any }
 export async function launchTemplateTasks(
   projectId: string,
   clientId: string | null,
+  serviceType?: string,
 ): Promise<number> {
-  const { data: templates, error: tplErr } = await db
+  let tplQuery = db
     .from('project_templates')
     .select('*')
     .order('task_number', { ascending: true })
+
+  if (serviceType) tplQuery = tplQuery.eq('service_type', serviceType)
+
+  const { data: templates, error: tplErr } = await tplQuery
 
   if (tplErr) throw new Error(tplErr.message)
   if (!templates || templates.length === 0) return 0
@@ -29,6 +34,11 @@ export async function launchTemplateTasks(
   const taskNumberToId: Record<number, string> = {}
 
   for (const tpl of tpls) {
+    // compute due_date = today + sla_days
+    const dueDate = tpl.sla_days > 0
+      ? new Date(Date.now() + tpl.sla_days * 86_400_000).toISOString().split('T')[0]
+      : null
+
     const { data, error: insertErr } = await db.from('tasks').insert({
       title:               tpl.title,
       description:         null,
@@ -38,6 +48,7 @@ export async function launchTemplateTasks(
       client_id:           clientId ?? null,
       template_id:         tpl.id,
       assignee_id:         null,
+      due_date:            dueDate,
       deadline:            null,
       estimated_hours:     tpl.sla_days > 0 ? tpl.sla_days * 8 : 0,
       actual_hours:        0,
