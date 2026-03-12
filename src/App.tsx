@@ -22,6 +22,7 @@ import { LoginPage } from './pages/Login'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { TestDashboard } from './pages/TestDashboard'
 
 export default function App() {
   return (
@@ -150,6 +151,9 @@ export default function App() {
 
             {/* Login */}
             <Route path="login" element={<LoginPage />} />
+
+            {/* Sandbox — standalone, sem auth */}
+            <Route path="test-dashboard" element={<TestDashboard />} />
           </Routes>
         </BrowserRouter>
       </SettingsProvider>

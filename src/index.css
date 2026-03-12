@@ -10,6 +10,10 @@
   --color-praxis-pink:   #ec4899;
   --color-praxis-green:  #10b981;
   --color-praxis-orange: #f59e0b;
+  /* ── Sandbox TestDashboard tokens ── */
+  --color-praxis-cyan: #00d2ff;
+  --color-praxis-bg:   #0a0d12;
+  --background-image-neon-gradient: linear-gradient(135deg, #00d2ff 0%, #9d50bb 100%);
 }
 
 
@@ -245,3 +249,18 @@ body {
 .badge-excellent { color: var(--neon-green);  background: rgba(16,185,129,0.1);  border: 1px solid rgba(16,185,129,0.2); }
 .badge-attention { color: var(--neon-orange); background: rgba(245,158,11,0.1);  border: 1px solid rgba(245,158,11,0.2); }
 .badge-critical  { color: var(--neon-red);    background: rgba(239,68,68,0.1);   border: 1px solid rgba(239,68,68,0.2);  }
+
+/* ── Bloco 2: Sandbox TestDashboard classes ──────────── */
+@layer components {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-2xl border border-white/10;
+  }
+
+  .neon-glow-cyan {
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+  }
+
+  .neon-text-cyan {
+    text-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
+  }
+}
