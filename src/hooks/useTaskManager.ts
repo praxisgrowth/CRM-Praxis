@@ -28,6 +28,10 @@ export interface NewTaskInput {
   deadline?: string | null
   estimated_hours?: number
   depends_on_id?: string | null
+  // ─── Deliverable intent ─────────────────────────
+  catalog_item_id?: string | null
+  deliverable_type?: Task['deliverable_type']
+  // ─────────────────────────────────────────────────
 }
 
 export interface UseTaskManagerResult {
@@ -144,6 +148,8 @@ export function useTaskManager(): UseTaskManagerResult {
       actual_hours:        0,
       current_timer_start: null,
       depends_on_id:       input.depends_on_id ?? null,
+      catalog_item_id:     input.catalog_item_id ?? null,
+      deliverable_type:    input.deliverable_type ?? null,
     })
     if (sbErr) throw sbErr
     refetch()

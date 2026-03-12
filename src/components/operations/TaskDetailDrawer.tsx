@@ -4,6 +4,7 @@ import {
   X, Clock, CheckSquare, Square, MessageCircle, Send, Play, StopCircle,
   Lock, Edit2, Save, XCircle,
 } from 'lucide-react'
+import { TaskNexusIntegration } from './TaskNexusIntegration'
 import type { TaskWithRelations } from '../../hooks/useTaskManager'
 import type { TaskStatus, Priority, TeamMember } from '../../lib/database.types'
 import { formatHours } from '../../hooks/useTaskManager'
@@ -317,6 +318,13 @@ export function TaskDetailDrawer({
               </div>
             )}
           </div>
+
+          {/* ── Nexus Deliverable Integration ── */}
+          {!editMode && (
+            <div className="pt-2">
+              <TaskNexusIntegration task={task} />
+            </div>
+          )}
 
           {/* ── Checklist ── */}
           {task.checklists.length > 0 && (

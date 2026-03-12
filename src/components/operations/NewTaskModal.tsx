@@ -1,13 +1,21 @@
 // src/components/operations/NewTaskModal.tsx
-import { useState } from 'react'
-import { X, Plus, Loader2 } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { X, Plus, Loader2, Package, ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { supabase as _supabase } from '../../lib/supabase'
 import type { NewTaskInput } from '../../hooks/useTaskManager'
-import type { TeamMember } from '../../lib/database.types'
+import type { TeamMember, Sector, DeliverableCatalogItem, NexusFileType } from '../../lib/database.types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = _supabase as unknown as { from(t: string): any }
 
 interface ProjectOption {
   id: string
   name: string
   client_name: string
+}
+
+interface CatalogWithSector extends DeliverableCatalogItem {
+  sector?: Sector
 }
 
 interface Props {
@@ -22,6 +30,13 @@ const PRIORITY_OPTIONS = [
   { value: 'media',   label: 'Média',   color: '#f59e0b' },
   { value: 'alta',    label: 'Alta',    color: '#ef4444' },
   { value: 'urgente', label: 'Urgente', color: '#ec4899' },
+]
+
+const FILE_TYPE_OPTIONS: { value: NexusFileType; label: string; color: string }[] = [
+  { value: 'imagem',    label: 'Imagem',    color: '#6366f1' },
+  { value: 'copy',      label: 'Copy',      color: '#8b5cf6' },
+  { value: 'video',     label: 'Vídeo',     color: '#3b82f6' },
+  { value: 'documento', label: 'Documento', color: '#10b981' },
 ]
 
 const inputStyle = {
@@ -46,15 +61,73 @@ const labelStyle = {
 }
 
 export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) {
-  const [title, setTitle]           = useState('')
+  // ─── Base fields ──────────────────────────────────────────────
+  const [title, setTitle]             = useState('')
   const [description, setDescription] = useState('')
-  const [projectId, setProjectId]   = useState('')
-  const [assigneeId, setAssigneeId] = useState('')
-  const [priority, setPriority]     = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media')
-  const [deadline, setDeadline]     = useState('')
-  const [saving, setSaving]         = useState(false)
-  const [err, setErr]               = useState<string | null>(null)
+  const [projectId, setProjectId]     = useState('')
+  const [assigneeId, setAssigneeId]   = useState('')
+  const [priority, setPriority]       = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media')
+  const [deadline, setDeadline]       = useState('')
+  const [saving, setSaving]           = useState(false)
+  const [err, setErr]                 = useState<string | null>(null)
 
+  // ─── Deliverable intent ───────────────────────────────────────
+  const [isDeliverable, setIsDeliverable]     = useState(false)
+  const [catalog, setCatalog]                 = useState<CatalogWithSector[]>([])
+  const [catalogLoading, setCatalogLoading]   = useState(false)
+  const [catalogId, setCatalogId]             = useState('')
+  const [deliverableType, setDeliverableType] = useState<NexusFileType>('documento')
+  const [catalogSearch, setCatalogSearch]     = useState('')
+
+  const loadCatalog = useCallback(async () => {
+    if (catalog.length > 0) return
+    setCatalogLoading(true)
+    const [catalogRes, sectorsRes] = await Promise.all([
+      db.from('deliverable_catalog').select('*').order('name', { ascending: true }),
+      db.from('sectors').select('*').order('name', { ascending: true }),
+    ])
+    if (!catalogRes.error && !sectorsRes.error) {
+      const sectorMap = Object.fromEntries(
+        (sectorsRes.data ?? []).map((s: Sector) => [s.id, s])
+      )
+      const enriched: CatalogWithSector[] = (catalogRes.data ?? []).map(
+        (i: DeliverableCatalogItem) => ({ ...i, sector: i.sector_id ? sectorMap[i.sector_id] : undefined })
+      )
+      setCatalog(enriched)
+    }
+    setCatalogLoading(false)
+  }, [catalog.length])
+
+  useEffect(() => {
+    if (isDeliverable) loadCatalog()
+  }, [isDeliverable, loadCatalog])
+
+  function handleCatalogSelect(id: string) {
+    setCatalogId(id)
+    const item = catalog.find(c => c.id === id)
+    if (item) {
+      if (!title.trim()) setTitle(item.name)
+      setDeliverableType(item.type as NexusFileType)
+    }
+  }
+
+  // Grouped + filtered catalog
+  const filteredCatalog = catalog.filter(c =>
+    catalogSearch === '' ||
+    c.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+    (c.sector?.name ?? '').toLowerCase().includes(catalogSearch.toLowerCase())
+  )
+
+  const grouped: { sectorName: string; color: string; items: CatalogWithSector[] }[] = []
+  filteredCatalog.forEach(item => {
+    const sName  = item.sector?.name  ?? 'Sem setor'
+    const sColor = item.sector?.color ?? '#475569'
+    const existing = grouped.find(g => g.sectorName === sName)
+    if (existing) existing.items.push(item)
+    else grouped.push({ sectorName: sName, color: sColor, items: [item] })
+  })
+
+  // ─── Submit ───────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) { setErr('Título é obrigatório.'); return }
@@ -62,12 +135,14 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
     setErr(null)
     try {
       await onSave({
-        title:       title.trim(),
-        description: description.trim() || null,
-        project_id:  projectId  || null,
-        assignee_id: assigneeId || null,
+        title:            title.trim(),
+        description:      description.trim() || null,
+        project_id:       projectId  || null,
+        assignee_id:      assigneeId || null,
         priority,
-        deadline:    deadline || null,
+        deadline:         deadline || null,
+        catalog_item_id:  isDeliverable ? (catalogId || null) : null,
+        deliverable_type: isDeliverable ? deliverableType : null,
       })
       onClose()
     } catch (e: any) {
@@ -85,16 +160,17 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-md rounded-2xl overflow-hidden"
+        className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
         style={{
           background: 'rgba(13,20,34,0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          maxHeight: '90vh',
         }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-4"
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -111,7 +187,7 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {err && (
             <div
               className="px-3 py-2 rounded-lg text-xs"
@@ -184,7 +260,11 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
             <div>
               <label style={labelStyle}>Prioridade</label>
               <select
-                style={{ ...inputStyle, cursor: 'pointer', color: PRIORITY_OPTIONS.find(p => p.value === priority)?.color ?? '#e2e8f0' }}
+                style={{
+                  ...inputStyle,
+                  cursor: 'pointer',
+                  color: PRIORITY_OPTIONS.find(p => p.value === priority)?.color ?? '#e2e8f0',
+                }}
                 value={priority}
                 onChange={e => setPriority(e.target.value as typeof priority)}
               >
@@ -206,6 +286,171 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
             />
+          </div>
+
+          {/* ── Deliverable Intent Section ── */}
+          <div
+            className="rounded-xl overflow-hidden transition-all duration-200"
+            style={{
+              border: isDeliverable
+                ? '1px solid rgba(99,102,241,0.35)'
+                : '1px solid rgba(255,255,255,0.07)',
+              background: isDeliverable
+                ? 'rgba(99,102,241,0.05)'
+                : 'rgba(255,255,255,0.02)',
+            }}
+          >
+            {/* Toggle header */}
+            <button
+              type="button"
+              onClick={() => setIsDeliverable(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left transition-all hover:bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-2">
+                <Package size={14} style={{ color: isDeliverable ? '#818cf8' : '#475569' }} />
+                <span className="text-xs font-semibold" style={{ color: isDeliverable ? '#a5b4fc' : '#64748b' }}>
+                  Configuração de Entregável
+                </span>
+                {isDeliverable && catalogId && (
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8' }}
+                  >
+                    {FILE_TYPE_OPTIONS.find(f => f.value === deliverableType)?.label ?? deliverableType}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {!isDeliverable && <span className="text-[10px] text-slate-600">Opcional</span>}
+                {isDeliverable
+                  ? <ChevronDown size={14} style={{ color: '#6366f1' }} />
+                  : <ChevronRight size={14} style={{ color: '#475569' }} />
+                }
+              </div>
+            </button>
+
+            {/* Expanded body */}
+            {isDeliverable && (
+              <div className="px-4 pb-4 space-y-4" style={{ borderTop: '1px solid rgba(99,102,241,0.15)' }}>
+                <p className="text-[11px] text-slate-500 pt-3 leading-relaxed">
+                  Associe esta tarefa a um entregável do catálogo Nexus. O tipo e título serão sugeridos automaticamente.
+                </p>
+
+                {catalogLoading && (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 size={13} className="animate-spin text-indigo-400" />
+                    <span className="text-xs text-slate-500">Carregando catálogo…</span>
+                  </div>
+                )}
+
+                {!catalogLoading && catalog.length > 0 && (
+                  <div>
+                    <label style={{ ...labelStyle, color: '#6366f1' }}>Catálogo Nexus</label>
+
+                    {/* Search */}
+                    <div className="relative mb-2">
+                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <input
+                        style={{ ...inputStyle, paddingLeft: 30, background: 'rgba(255,255,255,0.06)' }}
+                        placeholder="Buscar entregável ou setor…"
+                        value={catalogSearch}
+                        onChange={e => setCatalogSearch(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Grouped list */}
+                    <div
+                      className="rounded-xl overflow-hidden"
+                      style={{ border: '1px solid rgba(255,255,255,0.08)', maxHeight: 196, overflowY: 'auto' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => { setCatalogId(''); setCatalogSearch('') }}
+                        className="w-full text-left px-3 py-2 text-xs transition-all hover:bg-white/[0.04]"
+                        style={{
+                          color: catalogId === '' ? '#a5b4fc' : '#475569',
+                          background: catalogId === '' ? 'rgba(99,102,241,0.1)' : 'transparent',
+                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        }}
+                      >
+                        — Nenhum (preencher manualmente) —
+                      </button>
+
+                      {grouped.map(group => (
+                        <div key={group.sectorName}>
+                          <div
+                            className="px-3 py-1.5 flex items-center gap-1.5"
+                            style={{
+                              background: 'rgba(255,255,255,0.025)',
+                              borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: group.color }} />
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                              {group.sectorName}
+                            </span>
+                          </div>
+                          {group.items.map(item => {
+                            const typeOpt = FILE_TYPE_OPTIONS.find(f => f.value === item.type)
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleCatalogSelect(item.id)}
+                                className="w-full text-left px-4 py-2 text-xs transition-all hover:bg-white/[0.04] flex items-center justify-between"
+                                style={{
+                                  color: catalogId === item.id ? '#a5b4fc' : '#94a3b8',
+                                  background: catalogId === item.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                                  borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                }}
+                              >
+                                <span>{item.name}</span>
+                                {typeOpt && (
+                                  <span
+                                    className="text-[10px] px-1.5 py-0.5 rounded font-semibold ml-2 flex-shrink-0"
+                                    style={{ background: `${typeOpt.color}18`, color: typeOpt.color }}
+                                  >
+                                    {typeOpt.label}
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ))}
+
+                      {grouped.length === 0 && catalogSearch && (
+                        <div className="px-4 py-6 text-center text-xs text-slate-600 italic">
+                          Nenhum resultado para "{catalogSearch}"
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Deliverable type pills */}
+                <div>
+                  <label style={{ ...labelStyle, color: '#6366f1' }}>Tipo de Entregável</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {FILE_TYPE_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setDeliverableType(opt.value)}
+                        className="py-2 rounded-xl text-xs font-semibold transition-all"
+                        style={
+                          deliverableType === opt.value
+                            ? { background: `${opt.color}20`, border: `1px solid ${opt.color}50`, color: opt.color }
+                            : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#475569' }
+                        }
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit */}

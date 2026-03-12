@@ -3,13 +3,12 @@ import {
   Globe, CheckCircle2, Pencil, HelpCircle, PlusCircle,
   Loader2, FolderOpen,
   BarChart3, Calendar, Sparkles, Filter, Upload, Check, X,
-  Eye, Plus,
+  Eye,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useNexus } from '../hooks/useNexus'
 import { NexusTimeline } from '../components/nexus/NexusTimeline'
 import { NexusBrandFolder } from '../components/nexus/NexusBrandFolder'
-import { NexusUploadModal } from '../components/nexus/NexusUploadModal'
 import { useAuth } from '../contexts/AuthContext'
 import type { NexusFile, NexusFileStatus } from '../hooks/useNexus'
 import { TYPE_CONFIG, STATUS_CONFIG, fmtDate } from '../lib/nexus-utils'
@@ -276,7 +275,7 @@ function ComingSoonTab({
 
 // ─── Page ─────────────────────────────────────────────────────
 export function PortalNexusPage() {
-  const { files, loading, error, approveFile, requestAdjustment, refetch } = useNexus()
+  const { files, loading, error, approveFile, requestAdjustment } = useNexus()
   const { user, profile } = useAuth()
 
   // Resolve role — no session → treat as ADMIN (backward compat)
@@ -289,8 +288,6 @@ export function PortalNexusPage() {
   const [activeState,   setActiveState]   = useState<{ fileId: string; action: ApprovalAction; comment: string } | null>(null)
   const [submitting,    setSubmitting]    = useState(false)
   const [justSuggested, setJustSuggested] = useState<string | null>(null)
-  const [showUpload,    setShowUpload]    = useState(false)
-
   const isClientView = viewMode === 'cliente' || role === 'CLIENT'
 
   const filtered = useMemo(() => {
@@ -342,20 +339,6 @@ export function PortalNexusPage() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          {/* Upload button — equipe only */}
-          {!isClientView && (
-            <button
-              onClick={() => setShowUpload(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
-              }}
-            >
-              <Plus size={12} /> Novo Deliverable
-            </button>
-          )}
-
           {/* View mode switcher — ADMIN / MEMBER only */}
           {canSwitchView && (
             <div
@@ -568,13 +551,6 @@ export function PortalNexusPage() {
         />
       )}
 
-      {/* ── Upload Modal ── */}
-      {showUpload && (
-        <NexusUploadModal
-          onClose={() => setShowUpload(false)}
-          onSaved={() => refetch()}
-        />
-      )}
 
     </div>
   )

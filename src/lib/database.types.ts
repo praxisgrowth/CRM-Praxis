@@ -207,6 +207,10 @@ export interface Task {
   actual_hours: number
   current_timer_start: string | null
   depends_on_id: string | null
+  // ─── Deliverable intent (deliverable_intent_migration.sql) ───
+  catalog_item_id: string | null
+  deliverable_type: NexusFileType | null
+  // ─────────────────────────────────────────────────────────────
   created_at: string
   updated_at: string
 }
