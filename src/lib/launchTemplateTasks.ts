@@ -42,7 +42,7 @@ export async function launchTemplateTasks(
     const { data, error: insertErr } = await db.from('tasks').insert({
       title:               tpl.title,
       description:         null,
-      status:              'todo',
+      status:              tpl.depends_on_task_number ? 'blocked' : 'todo',
       priority:            'media',
       project_id:          projectId,
       client_id:           clientId ?? null,
