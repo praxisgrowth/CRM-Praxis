@@ -33,16 +33,15 @@ function formatValue(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 }
 
-function timeInStage(updatedAt: string): { label: string; color: string; isCold: boolean } {
+function timeInStage(updatedAt: string): { label: string; color: string; isCold: boolean; isWarm: boolean } {
   const diffMs   = Date.now() - new Date(updatedAt).getTime()
   const diffDays = Math.floor(diffMs / 86_400_000)
   const diffHrs  = Math.floor(diffMs / 3_600_000)
 
-  if (diffDays >= 7)  return { label: `${diffDays}d`, color: '#ef4444', isCold: true }
-  if (diffDays >= 3)  return { label: `${diffDays}d`, color: '#f59e0b', isCold: false }
-  if (diffDays >= 1)  return { label: `${diffDays}d`, color: '#10b981', isCold: false }
-  if (diffHrs >= 1)   return { label: `${diffHrs}h`,  color: '#10b981', isCold: false }
-  return               { label: 'agora',               color: '#6366f1', isCold: false }
+  if (diffDays >= 1)  return { label: `há ${diffDays}d`,  color: '#ef4444', isCold: true,  isWarm: false }
+  if (diffHrs >= 12)  return { label: `há ${diffHrs}h`,   color: '#f59e0b', isCold: false, isWarm: true  }
+  if (diffHrs >= 1)   return { label: `há ${diffHrs}h`,   color: '#10b981', isCold: false, isWarm: false }
+  return               { label: 'agora',                   color: '#6366f1', isCold: false, isWarm: false }
 }
 
 export function DealCard({
@@ -68,8 +67,9 @@ export function DealCard({
   const timing   = timeInStage(deal.updated_at)
 
   const hasPendingWhatsApp = priority === 'alta' && !isDragOverlay
-  const hasPendingCall     = timing.label.includes('d') && !isDragOverlay
-  const isColdLead         = timing.isCold
+  const hasPendingCall     = (timing.isCold || timing.isWarm) && !isDragOverlay
+  const isColdLead         = timing.isCold && !isDragOverlay
+  const isWarmLead         = timing.isWarm && !isDragOverlay
 
   // Title: use deal.title if set, otherwise fall back to name
   const cardTitle   = deal.title ?? deal.name
@@ -77,17 +77,25 @@ export function DealCard({
   // Show contact row only when a title exists (avoids showing name twice)
   const showContact = !!deal.title
 
+  const slaStyle = !isDragOverlay && !checked
+    ? isColdLead
+      ? { borderColor: 'rgba(239,68,68,0.45)', boxShadow: '0 0 12px rgba(239,68,68,0.15), inset 0 0 12px rgba(239,68,68,0.04)' }
+      : isWarmLead
+      ? { borderColor: 'rgba(245,158,11,0.35)', boxShadow: '0 0 8px rgba(245,158,11,0.10)' }
+      : {}
+    : {}
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, ...slaStyle }}
       {...attributes}
       {...(!bulkMode ? listeners : {})}
       className={clsx(
         "group relative bg-[#0d1422] rounded-2xl border transition-all duration-300 select-none",
         isDragging && !isDragOverlay ? "opacity-40" : "opacity-100",
-        isDragOverlay ? "shadow-2xl rotate-1 scale-105 border-blue-500/50" : "hover:border-white/20 hover:shadow-xl",
-        checked ? "border-blue-500/50 bg-blue-500/5" : "border-white/5",
+        isDragOverlay ? "shadow-2xl rotate-1 scale-105 border-blue-500/50" : "hover:shadow-xl",
+        checked ? "border-blue-500/50 bg-blue-500/5" : isColdLead || isWarmLead ? "border-transparent" : "border-white/5",
         !bulkMode && "cursor-grab active:cursor-grabbing"
       )}
     >
@@ -181,8 +189,13 @@ export function DealCard({
                   <Phone size={12} strokeWidth={3} />
                 </div>
               )}
+              {isWarmLead && (
+                <div title="SLA Atenção (>12h sem atualização)" className="text-amber-400 filter drop-shadow-[0_0_4px_rgba(245,158,11,0.3)]">
+                  <Clock size={12} strokeWidth={3} />
+                </div>
+              )}
               {isColdLead && (
-                <div title="SLA Crítico (Lead Frio)" className="text-red-500 filter drop-shadow-[0_0_4px_rgba(239,68,68,0.3)] animate-pulse">
+                <div title="SLA Crítico (>24h sem atualização)" className="text-red-500 filter drop-shadow-[0_0_4px_rgba(239,68,68,0.3)] animate-pulse">
                   <AlertCircle size={12} strokeWidth={3} />
                 </div>
               )}

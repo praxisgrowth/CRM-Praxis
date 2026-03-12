@@ -37,6 +37,10 @@ export function KanbanColumn({
   const columnIds    = leads.map(l => l.id)
   const allSelected  = columnIds.length > 0 && columnIds.every(id => selectedIds.has(id))
   const someSelected = columnIds.some(id => selectedIds.has(id)) && !allSelected
+  const criticalCount = leads.filter(l => {
+    const diffH = (Date.now() - new Date(l.updated_at).getTime()) / 3_600_000
+    return diffH >= 24
+  }).length
 
   function handleToggleAll() {
     onToggleAll?.(columnIds, !allSelected)
@@ -89,6 +93,16 @@ export function KanbanColumn({
           >
             {leads.length}
           </span>
+          {criticalCount > 0 && (
+            <span
+              title={`${criticalCount} lead${criticalCount > 1 ? 's' : ''} com SLA crítico (>24h)`}
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black animate-pulse"
+              style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+              {criticalCount}
+            </span>
+          )}
         </div>
         <span className="text-[10px] font-semibold" style={{ color: column.color }}>
           {formatTotal(leads)}
