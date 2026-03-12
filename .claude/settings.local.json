@@ -23,7 +23,8 @@
       "Bash(find . -name \"*.ts\" -o -name \"*.tsx\" | xargs grep -l \"useNexus\\\\|handleAction\" | grep -v node_modules | head -10)",
       "Bash(find ./src -name \"*operations*\" -type f | grep -E \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(find ./src/hooks -name \"*.ts\" | xargs ls -lah | head -20)",
-      "Bash(grep -r \"sla_percent\\\\|deadline\\\\|actual_hours\" ./supabase/*.sql | head -30)"
+      "Bash(grep -r \"sla_percent\\\\|deadline\\\\|actual_hours\" ./supabase/*.sql | head -30)",
+      "Bash(taskkill /F /IM node.exe 2>&1; echo \"killed\")"
     ]
   }
 }

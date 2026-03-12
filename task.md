@@ -12,6 +12,17 @@
 - [x] Prevenção de duplicatas na Pipeline
 - [x] Unificação de Onboarding (BillingOnboardingModal)
 - [x] **Pipeline Dinâmico (Arraste automático ao mudar estágio)**
+- [x] **Integração de Novo Design de Dashboard (Isolated View)**:
+  - [x] Ajustar roteamento isolado em `App.tsx`.
+  - [x] Configurar tokens de tema e utilitários Tailwind v4 em `index.css`.
+  - [x] Implementar componente `TestDashboard.tsx` com novo design.
+  - [x] Validar renderização e isolamento da rota.
+- [x] **Migração de Design para Core CRM**:
+  - [x] Backup de segurança dos arquivos de produção.
+  - [x] Refatorar `Sidebar.tsx` com novo visual + RBAC.
+  - [x] Refatorar `Header.tsx` com novo visual.
+  - [x] Atualizar `Dashboard.tsx` oficial vinculando dados reais ao novo visual.
+  - [x] Validar consistência visual em todas as rotas internas.
 - [/] Ajustes de Banco de Dados (Phase 3b)
   - [x] Adicionar coluna `complemento` em `clients`
   - [x] Criar tabela `audit_logs` no banco
