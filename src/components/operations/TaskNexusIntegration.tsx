@@ -1,11 +1,12 @@
 // src/components/operations/TaskNexusIntegration.tsx
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Upload, CheckCircle2, Loader2, Link as LinkIcon,
-  X, ExternalLink, Package, FileText,
+  X, ExternalLink, Package, FileText, ImagePlus,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { TYPE_CONFIG, STATUS_CONFIG } from '../../lib/nexus-utils'
+import { ContentDetailModal } from './ContentDetailModal'
 import type { NexusFile, NexusFileType } from '../../hooks/useNexus'
 import type { TaskWithRelations } from '../../hooks/useTaskManager'
 import type { DeliverableCatalogItem, Sector } from '../../lib/database.types'
@@ -30,15 +31,22 @@ export function TaskNexusIntegration({ task }: Props) {
   const [showForm,   setShowForm]   = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formErr,    setFormErr]    = useState<string | null>(null)
+  const [detailFile, setDetailFile] = useState<NexusFile | null>(null)
 
   // Catalog item for pre-fill
   const [catalogItem, setCatalogItem] = useState<CatalogWithSector | null>(null)
 
-  // Form state (pre-filled from catalog intent when available)
+  // Form state
   const [title,       setTitle]       = useState('')
   const [type,        setType]        = useState<NexusFileType>('imagem')
   const [url,         setUrl]         = useState('')
   const [description, setDescription] = useState('')
+
+  // Image upload state
+  const [uploadMode,    setUploadMode]    = useState<'url' | 'upload'>('url')
+  const [uploadFile,    setUploadFile]    = useState<File | null>(null)
+  const [uploading,     setUploading]     = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load nexus files linked to this task
   const loadFiles = useCallback(async () => {
@@ -71,7 +79,6 @@ export function TaskNexusIntegration({ task }: Props) {
           sector: catalogRes.data.sector_id ? sectorMap[catalogRes.data.sector_id] : undefined,
         }
         setCatalogItem(enriched)
-        // Pre-fill form
         setTitle(catalogRes.data.name ?? '')
         setType((task.deliverable_type as NexusFileType) ?? (catalogRes.data.type as NexusFileType) ?? 'imagem')
       }
@@ -79,7 +86,6 @@ export function TaskNexusIntegration({ task }: Props) {
     fetchCatalog()
   }, [task.catalog_item_id, task.deliverable_type])
 
-  // If no catalog intent but deliverable_type set, use it
   useEffect(() => {
     if (!task.catalog_item_id && task.deliverable_type) {
       setType(task.deliverable_type as NexusFileType)
@@ -88,16 +94,48 @@ export function TaskNexusIntegration({ task }: Props) {
 
   useEffect(() => { loadFiles() }, [loadFiles])
 
+  async function uploadImageToStorage(file: File): Promise<string> {
+    const ext  = file.name.split('.').pop() ?? 'jpg'
+    const path = `${task.id}/${Date.now()}.${ext}`
+    setUploading(true)
+    try {
+      const { error: upErr } = await supabase.storage
+        .from('nexus-deliverables')
+        .upload(path, file, { upsert: false })
+      if (upErr) throw upErr
+      const { data: urlData } = supabase.storage
+        .from('nexus-deliverables')
+        .getPublicUrl(path)
+      return urlData.publicUrl
+    } finally {
+      setUploading(false)
+    }
+  }
+
   async function handleSubmit() {
     if (!title.trim()) { setFormErr('O título é obrigatório.'); return }
-    if (!url.trim())   { setFormErr('O link do arquivo é obrigatório.'); return }
+
+    let finalUrl = url.trim()
+
+    if (uploadMode === 'upload') {
+      if (!uploadFile) { setFormErr('Selecione uma imagem para enviar.'); return }
+      try {
+        finalUrl = await uploadImageToStorage(uploadFile)
+      } catch (err: any) {
+        setFormErr(err.message || 'Erro ao fazer upload da imagem.')
+        return
+      }
+    } else {
+      if (!finalUrl) { setFormErr('O link do arquivo é obrigatório.'); return }
+    }
+
     setSubmitting(true)
     setFormErr(null)
     try {
       const { error } = await db.from('nexus_files').insert({
         title:           title.trim(),
         type,
-        url:             url.trim(),
+        url:             finalUrl,
         description:     description.trim() || null,
         task_id:         task.id,
         project_id:      task.project_id,
@@ -111,6 +149,7 @@ export function TaskNexusIntegration({ task }: Props) {
       setTitle(catalogItem?.name ?? '')
       setUrl('')
       setDescription('')
+      setUploadFile(null)
       setShowForm(false)
       loadFiles()
     } catch (err: any) {
@@ -177,17 +216,18 @@ export function TaskNexusIntegration({ task }: Props) {
         </div>
       )}
 
-      {/* Existing files */}
+      {/* Existing files — clickable to open ContentDetailModal */}
       {files.length > 0 && (
         <div className="space-y-2">
           {files.map(file => {
-            const tCfg  = TYPE_CONFIG[file.type]
-            const sCfg  = STATUS_CONFIG[file.status]
-            const Icon  = tCfg.icon
+            const tCfg = TYPE_CONFIG[file.type]
+            const sCfg = STATUS_CONFIG[file.status]
+            const Icon = tCfg.icon
             return (
-              <div
+              <button
                 key={file.id}
-                className="flex items-center justify-between p-3 rounded-xl"
+                onClick={() => setDetailFile(file)}
+                className="w-full flex items-center justify-between p-3 rounded-xl text-left transition-all hover:bg-white/5"
                 style={{
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.06)',
@@ -212,12 +252,13 @@ export function TaskNexusIntegration({ task }: Props) {
                     href={file.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
                     className="p-1.5 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition-all flex-shrink-0"
                   >
                     <ExternalLink size={13} />
                   </a>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -269,7 +310,7 @@ export function TaskNexusIntegration({ task }: Props) {
               </div>
             )}
 
-            {/* Catalog context (read-only, if available) */}
+            {/* Catalog context */}
             {catalogItem && (
               <div
                 className="flex items-center gap-2 px-3 py-2 rounded-xl"
@@ -296,22 +337,55 @@ export function TaskNexusIntegration({ task }: Props) {
               />
             </div>
 
-            {/* Type + URL row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Tipo</label>
-                <select
-                  value={type}
-                  onChange={e => setType(e.target.value as NexusFileType)}
-                  className={inputClass}
-                  style={{ cursor: 'pointer', color: typeCfg.color }}
+            {/* Type */}
+            <div>
+              <label className={labelClass}>Tipo</label>
+              <select
+                value={type}
+                onChange={e => {
+                  const t = e.target.value as NexusFileType
+                  setType(t)
+                  // reset upload mode when switching away from imagem
+                  if (t !== 'imagem') setUploadMode('url')
+                }}
+                className={inputClass}
+                style={{ cursor: 'pointer', color: typeCfg.color }}
+              >
+                <option value="imagem"    style={{ background: '#0a0e16', color: '#6366f1' }}>Imagem</option>
+                <option value="copy"      style={{ background: '#0a0e16', color: '#8b5cf6' }}>Copy</option>
+                <option value="video"     style={{ background: '#0a0e16', color: '#3b82f6' }}>Vídeo</option>
+                <option value="documento" style={{ background: '#0a0e16', color: '#10b981' }}>Documento</option>
+              </select>
+            </div>
+
+            {/* URL / Upload toggle (only for imagem) */}
+            {type === 'imagem' && (
+              <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('url')}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                  style={uploadMode === 'url'
+                    ? { background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.35)' }
+                    : { color: '#475569' }}
                 >
-                  <option value="imagem"    style={{ background: '#0a0e16', color: '#6366f1' }}>Imagem</option>
-                  <option value="copy"      style={{ background: '#0a0e16', color: '#8b5cf6' }}>Copy</option>
-                  <option value="video"     style={{ background: '#0a0e16', color: '#3b82f6' }}>Vídeo</option>
-                  <option value="documento" style={{ background: '#0a0e16', color: '#10b981' }}>Documento</option>
-                </select>
+                  <LinkIcon size={11} /> Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('upload')}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                  style={uploadMode === 'upload'
+                    ? { background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.35)' }
+                    : { color: '#475569' }}
+                >
+                  <ImagePlus size={11} /> Upload
+                </button>
               </div>
+            )}
+
+            {/* URL field */}
+            {uploadMode === 'url' && (
               <div>
                 <label className={labelClass}>Link do Arquivo *</label>
                 <div className="relative">
@@ -326,7 +400,39 @@ export function TaskNexusIntegration({ task }: Props) {
                   <LinkIcon size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Upload field */}
+            {uploadMode === 'upload' && (
+              <div>
+                <label className={labelClass}>Arquivo de Imagem *</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs transition-all hover:bg-white/5"
+                  style={{
+                    border: uploadFile ? '1px solid rgba(99,102,241,0.4)' : '1px dashed rgba(255,255,255,0.12)',
+                    color: uploadFile ? '#a5b4fc' : '#475569',
+                    background: uploadFile ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  {uploading ? (
+                    <><Loader2 size={13} className="animate-spin" /> Fazendo upload…</>
+                  ) : uploadFile ? (
+                    <><ImagePlus size={13} /> {uploadFile.name}</>
+                  ) : (
+                    <><ImagePlus size={13} /> Clique para selecionar imagem</>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* Description */}
             <div>
@@ -344,18 +450,18 @@ export function TaskNexusIntegration({ task }: Props) {
             {/* Submit button */}
             <button
               onClick={handleSubmit}
-              disabled={submitting || !title.trim() || !url.trim()}
+              disabled={submitting || uploading || !title.trim() || (uploadMode === 'url' && !url.trim()) || (uploadMode === 'upload' && !uploadFile)}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
               style={{
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                 boxShadow: '0 4px 16px rgba(99,102,241,0.25)',
               }}
             >
-              {submitting
+              {(submitting || uploading)
                 ? <Loader2 size={13} className="animate-spin" />
                 : <Upload size={13} />
               }
-              {submitting ? 'Enviando…' : 'Enviar para Aprovação'}
+              {uploading ? 'Fazendo upload…' : submitting ? 'Enviando…' : 'Enviar para Aprovação'}
             </button>
           </div>
         </div>
@@ -372,6 +478,15 @@ export function TaskNexusIntegration({ task }: Props) {
               : 'Nenhum entregável submetido ainda.'}
           </p>
         </div>
+      )}
+
+      {/* Content Detail Modal */}
+      {detailFile && (
+        <ContentDetailModal
+          file={detailFile}
+          taskDescription={task.description ?? null}
+          onClose={() => setDetailFile(null)}
+        />
       )}
     </div>
   )
