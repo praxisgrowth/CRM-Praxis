@@ -178,6 +178,13 @@ export type ProjectStatus = 'ativo' | 'pausado' | 'concluido' | 'atrasado'
 export type TaskStatus    = 'todo' | 'in_progress' | 'waiting_client' | 'done' | 'blocked'
 export type Priority      = 'baixa' | 'media' | 'alta' | 'urgente'
 
+export interface EditorialLine {
+  id: string
+  name: string
+  color: string
+  ord: number
+}
+
 export interface Project {
   id: string
   name: string
@@ -210,6 +217,10 @@ export interface Task {
   // ─── Deliverable intent (deliverable_intent_migration.sql) ───
   catalog_item_id: string | null
   deliverable_type: NexusFileType | null
+  // ─────────────────────────────────────────────────────────────
+  // ─── Editorial Calendar (editorial_calendar_migration.sql) ───
+  publish_date:       string | null   // ISO date 'YYYY-MM-DD'
+  editorial_line_id:  string | null
   // ─────────────────────────────────────────────────────────────
   created_at: string
   updated_at: string

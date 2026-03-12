@@ -32,6 +32,10 @@ export interface NewTaskInput {
   catalog_item_id?: string | null
   deliverable_type?: Task['deliverable_type']
   // ─────────────────────────────────────────────────
+  // ─── Editorial Calendar ──────────────────────────
+  publish_date?:      string | null
+  editorial_line_id?: string | null
+  // ─────────────────────────────────────────────────
 }
 
 export interface UseTaskManagerResult {
@@ -150,6 +154,8 @@ export function useTaskManager(): UseTaskManagerResult {
       depends_on_id:       input.depends_on_id ?? null,
       catalog_item_id:     input.catalog_item_id ?? null,
       deliverable_type:    input.deliverable_type ?? null,
+      publish_date:        input.publish_date       ?? null,
+      editorial_line_id:   input.editorial_line_id  ?? null,
     })
     if (sbErr) throw sbErr
     refetch()
