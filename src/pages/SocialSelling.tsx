@@ -19,6 +19,8 @@ import { DealCard } from '../components/pipeline/DealCard'
 import { NewDealModal } from '../components/pipeline/NewDealModal'
 import { ClientDrawer } from '../components/leads/ClientDrawer'
 import { useLeads } from '../hooks/useLeads'
+import { useOperations } from '../hooks/useOperations'
+import { launchTemplateTasks } from '../lib/launchTemplateTasks'
 import type { Lead, PipelineStage } from '../lib/database.types'
 import type { NewDealInput } from '../hooks/usePipeline'
 import { PIPELINE_STAGES } from '../config/pipeline'
@@ -33,6 +35,7 @@ function formatBigValue(v: number) {
 
 export function SocialSellingPage() {
   const { leads, loading, error, moveLead, addLead, deleteLead, refetch } = useLeads('social')
+  const { addProject } = useOperations()
   const [activeLead,   setActiveLead]   = useState<Lead | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showModal,    setShowModal]    = useState(false)
@@ -102,6 +105,28 @@ export function SocialSellingPage() {
         .select('id, name')
         .single()
       if (err) throw err
+
+      // ── Auto-criar projeto e lançar tarefas do template ──────────────
+      const serviceType = lead.title ?? undefined
+      try {
+        const projectId = await addProject({
+          name:         clientName,
+          client_name:  clientName,
+          client_id:    data.id,
+          status:       'ativo',
+          service_type: serviceType ?? null,
+          sla_percent:  0,
+          due_date:     null,
+        })
+        const count = await launchTemplateTasks(projectId, data.id, serviceType)
+        if (count > 0) {
+          console.info(`[SocialSelling handleConvertLead] ${count} tarefas lançadas para projeto ${projectId}`)
+        }
+      } catch (projErr) {
+        console.error('[SocialSelling handleConvertLead] Falha ao criar projeto/tarefas:', projErr)
+        // não bloqueia o onboarding
+      }
+
       setOnboarding({ clientId: data.id, clientName: data.name, leadData: lead })
     } catch (e) {
       console.error('[SocialSelling handleConvertLead]', e)
