@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, AlertCircle, RefreshCw, List, LayoutGrid,
   Briefcase, Edit2, X, Eye, EyeOff, Settings,
-  Rocket, ClipboardList,
+  Rocket, ClipboardList, CalendarDays,
 } from 'lucide-react'
 import { useAudit }             from '../hooks/useAudit'
 import { useTeam }              from '../hooks/useTeam'
@@ -16,6 +16,8 @@ import { NewProjectModal }      from '../components/operations/NewProjectModal'
 import { TaskFilters, DEFAULT_FILTERS } from '../components/operations/TaskFilters'
 import { OperationsTable }      from '../components/operations/OperationsTable'
 import { TaskKanbanBoard }      from '../components/operations/TaskKanbanBoard'
+import { EditorialCalendar }   from '../components/calendar/EditorialCalendar'
+import type { TaskWithEditorialLine } from '../hooks/useCalendarTasks'
 import { TaskDetailDrawer }     from '../components/operations/TaskDetailDrawer'
 import { NewTaskModal }         from '../components/operations/NewTaskModal'
 import { BatchLaunchModal }     from '../components/operations/BatchLaunchModal'
@@ -178,7 +180,7 @@ export function OperationsPage({ view }: Props) {
   } = useTaskManager()
   const { logAction } = useAudit()
 
-  const [viewMode, setViewMode]          = useState<'lista' | 'kanban'>('lista')
+  const [viewMode, setViewMode]          = useState<'lista' | 'kanban' | 'calendario'>('lista')
   const [hideDone, setHideDone]          = useState(false)
   const [statusFilter, setStatusFilter]  = useState<StatusFilter>('todos')
   const [showNewProject, setShowNewProject] = useState(false)
@@ -187,6 +189,7 @@ export function OperationsPage({ view }: Props) {
   const [selectedTask, setSelectedTask]  = useState<TaskWithRelations | null>(null)
   const [taskFilters, setTaskFilters]    = useState<TaskFilterState>(DEFAULT_FILTERS)
   const [showBatchLaunch, setShowBatchLaunch] = useState(false)
+  const [calendarPrefillDate, setCalendarPrefillDate] = useState<string | null>(null)
   const { members: teamMembers } = useTeam()
   const sectors = useSectors()
 
@@ -258,6 +261,15 @@ export function OperationsPage({ view }: Props) {
                   : { background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => setViewMode('calendario')}
+                className="p-2 rounded-lg transition-all"
+                style={viewMode === 'calendario'
+                  ? { background: 'rgba(99,102,241,0.15)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }
+                  : { background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <CalendarDays size={15} />
               </button>
             </div>
             {/* Gear */}
@@ -358,13 +370,25 @@ export function OperationsPage({ view }: Props) {
               onStop={stopTimer}
               onStatusChange={(id, status) => updateTask(id, { status })}
             />
-          ) : (
+          ) : viewMode === 'kanban' ? (
             <TaskKanbanBoard
               tasks={filteredTasks}
               projectMap={projectMap}
               memberMap={memberMap}
               onTaskClick={setSelectedTask}
               onStatusChange={(taskId, newStatus) => updateTask(taskId, { status: newStatus as TaskStatus })}
+            />
+          ) : (
+            <EditorialCalendar
+              onDayClick={(date) => {
+                const iso = date.toISOString().slice(0, 10)
+                setCalendarPrefillDate(iso)
+                setShowNewTask(true)
+              }}
+              onTaskClick={(task: TaskWithEditorialLine) => setSelectedTask(task as unknown as TaskWithRelations)}
+              onBatchSave={async (newTasks) => {
+                for (const t of newTasks) await addTask(t)
+              }}
             />
           )}
         </div>
@@ -374,7 +398,8 @@ export function OperationsPage({ view }: Props) {
           <NewTaskModal
             projects={projects.map(p => ({ id: p.id, name: p.name, client_name: p.client_name }))}
             teamMembers={teamMembers}
-            onClose={() => setShowNewTask(false)}
+            prefillPublishDate={calendarPrefillDate}
+            onClose={() => { setShowNewTask(false); setCalendarPrefillDate(null) }}
             onSave={async input => {
               await addTask(input)
               await logAction('Create Task', 'task', 'new', { title: input.title })

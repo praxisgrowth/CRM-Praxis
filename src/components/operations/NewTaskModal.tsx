@@ -21,6 +21,7 @@ interface CatalogWithSector extends DeliverableCatalogItem {
 interface Props {
   projects: ProjectOption[]
   teamMembers: TeamMember[]
+  prefillPublishDate?: string | null
   onClose: () => void
   onSave: (input: NewTaskInput) => Promise<void>
 }
@@ -60,7 +61,7 @@ const labelStyle = {
   marginBottom: 6,
 }
 
-export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) {
+export function NewTaskModal({ projects, teamMembers, prefillPublishDate, onClose, onSave }: Props) {
   // ─── Base fields ──────────────────────────────────────────────
   const [title, setTitle]             = useState('')
   const [description, setDescription] = useState('')
@@ -68,6 +69,7 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
   const [assigneeId, setAssigneeId]   = useState('')
   const [priority, setPriority]       = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media')
   const [deadline, setDeadline]       = useState('')
+  const [publishDate, setPublishDate] = useState(prefillPublishDate ?? '')
   const [saving, setSaving]           = useState(false)
   const [err, setErr]                 = useState<string | null>(null)
 
@@ -141,6 +143,7 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
         assignee_id:      assigneeId || null,
         priority,
         deadline:         deadline || null,
+        publish_date:     publishDate || null,
         catalog_item_id:  isDeliverable ? (catalogId || null) : null,
         deliverable_type: isDeliverable ? deliverableType : null,
       })
@@ -285,6 +288,17 @@ export function NewTaskModal({ projects, teamMembers, onClose, onSave }: Props) 
               style={{ ...inputStyle, colorScheme: 'dark' }}
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
+            />
+          </div>
+
+          {/* Publish date */}
+          <div>
+            <label style={labelStyle}>Data de Publicação</label>
+            <input
+              type="date"
+              style={{ ...inputStyle, colorScheme: 'dark' }}
+              value={publishDate}
+              onChange={e => setPublishDate(e.target.value)}
             />
           </div>
 
