@@ -53,10 +53,15 @@ ALTER TABLE tasks
 ```
 
 ### Hook `useCalendarTasks.ts`
-- Parâmetros: `projectId?`, `clientId?`, `month: Date`
-- Busca tasks com `publish_date` dentro do intervalo do mês
+- Parâmetros externos (filtros passados pelo caller): `projectId?`, `clientId?`, `status?`, `priority?`
+- Estado de mês **interno ao hook** (`initialMonth?: Date` como valor inicial)
 - Expõe: `tasks`, `loading`, `currentMonth`, `goToPrev()`, `goToNext()`
 - Padrão de cast Supabase: `const db = _supabase as unknown as { from(t: string): any }`
+
+### Hook `useEditorialLines.ts`
+- Sem parâmetros
+- Busca todas as linhas da tabela `editorial_lines` ordenadas por `ord`
+- Expõe: `lines`, `loading`, `addLine(name, color)`, `updateLine(id, patch)`, `deleteLine(id)`, `reorder(ids)`
 
 ---
 
@@ -82,11 +87,11 @@ interface CalendarGridProps {
 - Cabeçalho: `← Março 2026 →` + botão **"Planejar Calendário"**
 - Click em dia vazio → abre `NewTaskModal` com `publish_date` pré-preenchida
 - Click em botão "Planejar Calendário" → abre `BatchPlannerPanel`
-- Respeita filtros ativos de Operations (projeto, status, prioridade)
+- Respeita filtros ativos de Operations — `projectId`, `status` e `priority` são passados como parâmetros externos para `useCalendarTasks`
 
 ### `BatchPlannerPanel.tsx` — Painel de Rascunhos em Lote
 Drawer lateral glassmorphism:
-- Linhas dinâmicas com campos: `título | linha editorial | data | tipo`
+- Linhas dinâmicas com campos: `título | linha editorial | data | tipo (deliverable_type)`
 - Botão "+ Adicionar linha"
 - **"Salvar Rascunhos"** → batch insert de todas as tasks
 - Fecha com `X` ou `Esc`
