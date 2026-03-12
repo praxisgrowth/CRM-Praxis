@@ -3,10 +3,11 @@ import {
   Globe, CheckCircle2, Pencil, HelpCircle, PlusCircle,
   Loader2, FolderOpen,
   BarChart3, Calendar, Sparkles, Filter, Upload, Check, X,
-  Eye,
+  Eye, LayoutGrid, CalendarDays,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useNexus } from '../hooks/useNexus'
+import { ClientCalendar } from '../components/calendar/ClientCalendar'
 import { NexusTimeline } from '../components/nexus/NexusTimeline'
 import { NexusBrandFolder } from '../components/nexus/NexusBrandFolder'
 import { useAuth } from '../contexts/AuthContext'
@@ -282,13 +283,15 @@ export function PortalNexusPage() {
   const role = user === null ? 'ADMIN' : (profile?.role ?? 'MEMBER')
   const canSwitchView = role === 'ADMIN' || role === 'MEMBER'
 
-  const [viewMode,      setViewMode]      = useState<'equipe' | 'cliente'>('equipe')
-  const [activeTab,     setActiveTab]     = useState('aprovacoes')
-  const [filter,        setFilter]        = useState<NexusFileStatus | 'todos'>('todos')
-  const [activeState,   setActiveState]   = useState<{ fileId: string; action: ApprovalAction; comment: string } | null>(null)
-  const [submitting,    setSubmitting]    = useState(false)
-  const [justSuggested, setJustSuggested] = useState<string | null>(null)
+  const [viewMode,        setViewMode]        = useState<'equipe' | 'cliente'>('equipe')
+  const [activeTab,       setActiveTab]       = useState('aprovacoes')
+  const [filter,          setFilter]          = useState<NexusFileStatus | 'todos'>('todos')
+  const [activeState,     setActiveState]     = useState<{ fileId: string; action: ApprovalAction; comment: string } | null>(null)
+  const [submitting,      setSubmitting]      = useState(false)
+  const [justSuggested,   setJustSuggested]  = useState<string | null>(null)
+  const [aprovacaoView,   setAprovacaoView]  = useState<'grade' | 'calendario'>('grade')
   const isClientView = viewMode === 'cliente' || role === 'CLIENT'
+  const calendarClientId = profile?.client_id ?? null
 
   const filtered = useMemo(() => {
     if (filter === 'todos') return files
@@ -475,12 +478,35 @@ export function PortalNexusPage() {
           {/* Client view header */}
           {isClientView && (
             <div
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl flex-shrink-0"
+              className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl flex-shrink-0"
               style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
             >
-              <Eye size={13} className="text-indigo-400" />
-              <span className="text-xs text-indigo-300 font-medium">Visão Cliente</span>
-              <span className="text-xs text-slate-600 ml-1">— Aprove, sugira ajustes ou tire dúvidas sobre os conteúdos abaixo.</span>
+              <div className="flex items-center gap-2">
+                <Eye size={13} className="text-indigo-400" />
+                <span className="text-xs text-indigo-300 font-medium">Visão Cliente</span>
+                <span className="text-xs text-slate-600 ml-1">— Aprove, sugira ajustes ou tire dúvidas sobre os conteúdos abaixo.</span>
+              </div>
+              {/* Grade / Calendário toggle */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setAprovacaoView('grade')}
+                  className="p-1.5 rounded-lg transition-all"
+                  style={aprovacaoView === 'grade'
+                    ? { background: 'rgba(99,102,241,0.2)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.35)' }
+                    : { background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <LayoutGrid size={13} />
+                </button>
+                <button
+                  onClick={() => setAprovacaoView('calendario')}
+                  className="p-1.5 rounded-lg transition-all"
+                  style={aprovacaoView === 'calendario'
+                    ? { background: 'rgba(99,102,241,0.2)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.35)' }
+                    : { background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <CalendarDays size={13} />
+                </button>
+              </div>
             </div>
           )}
 
@@ -510,8 +536,15 @@ export function PortalNexusPage() {
             </div>
           )}
 
+          {/* Calendar view (client only) */}
+          {isClientView && aprovacaoView === 'calendario' && calendarClientId && (
+            <div className="flex-1 overflow-y-auto pb-2">
+              <ClientCalendar clientId={calendarClientId} />
+            </div>
+          )}
+
           {/* Cards grid */}
-          {!loading && filtered.length > 0 && (
+          {!loading && filtered.length > 0 && (!isClientView || aprovacaoView === 'grade') && (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto pb-2">
               {filtered.map(file => (
                 <MediaCard
