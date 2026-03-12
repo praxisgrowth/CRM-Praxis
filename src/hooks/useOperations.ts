@@ -12,6 +12,7 @@ export interface ProjectWithTasks extends Project {
 export interface NewProjectInput {
   name: string
   client_name: string
+  client_id?: string | null
   status: Project['status']
   service_type: string | null
   sla_percent: number
@@ -93,7 +94,7 @@ export function useOperations(): UseOperationsResult {
     const optimistic: ProjectWithTasks = {
       ...input,
       id: `tmp-${Date.now()}`,
-      client_id: null,
+      client_id: input.client_id ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       tasks: [],
