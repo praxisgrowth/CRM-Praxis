@@ -208,10 +208,15 @@ function MemberModal({
             role:      form.role,
           },
         })
-        
-        if (fnErr) throw fnErr
+
+        if (fnErr) {
+          const msg = fnErr.message?.includes('Failed to send')
+            ? 'Não foi possível alcançar o servidor. Verifique sua conexão.'
+            : fnErr.message || 'Erro ao chamar a função de convite.'
+          throw new Error(msg)
+        }
         if (data?.error) {
-          setError(`Erro: ${data.error}`)
+          setError(`Erro do servidor: ${data.error}`)
           setSending(false)
           return
         }

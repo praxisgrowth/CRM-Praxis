@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import {
   Globe, CheckCircle2, Pencil, HelpCircle, PlusCircle,
-  ImageIcon, FileText, Video, File, Loader2, FolderOpen,
+  Loader2, FolderOpen,
   BarChart3, Calendar, Sparkles, Filter, Upload, Check, X,
   Eye, Plus,
 } from 'lucide-react'
@@ -11,24 +11,10 @@ import { NexusTimeline } from '../components/nexus/NexusTimeline'
 import { NexusBrandFolder } from '../components/nexus/NexusBrandFolder'
 import { NexusUploadModal } from '../components/nexus/NexusUploadModal'
 import { useAuth } from '../contexts/AuthContext'
-import type { NexusFile, NexusFileType, NexusFileStatus } from '../hooks/useNexus'
+import type { NexusFile, NexusFileStatus } from '../hooks/useNexus'
+import { TYPE_CONFIG, STATUS_CONFIG, fmtDate } from '../lib/nexus-utils'
 
 type ApprovalAction = 'aprovado' | 'ajuste' | 'duvida' | 'sugestao'
-
-// ─── Config maps ──────────────────────────────────────────────
-const TYPE_CONFIG: Record<NexusFileType, { icon: React.ElementType; color: string; label: string }> = {
-  imagem:    { icon: ImageIcon, color: '#6366f1', label: 'Imagem'    },
-  copy:      { icon: FileText,  color: '#8b5cf6', label: 'Copy'      },
-  video:     { icon: Video,     color: '#3b82f6', label: 'Vídeo'     },
-  documento: { icon: File,      color: '#10b981', label: 'Documento' },
-}
-
-const STATUS_CONFIG: Record<NexusFileStatus, { color: string; bg: string; label: string }> = {
-  pendente: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  label: 'Aguardando' },
-  aprovado: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: 'Aprovado'   },
-  ajuste:   { color: '#f97316', bg: 'rgba(249,115,22,0.12)', label: 'Em Ajuste'  },
-  duvida:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Em Dúvida'  },
-}
 
 const ACTIONS: {
   action: ApprovalAction
@@ -57,11 +43,6 @@ const FILTERS: { value: NexusFileStatus | 'todos'; label: string }[] = [
   { value: 'ajuste',   label: 'Em Ajuste' },
   { value: 'duvida',   label: 'Em Dúvida' },
 ]
-
-// ─── Helpers ──────────────────────────────────────────────────
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-}
 
 // ─── Media Card ───────────────────────────────────────────────
 function MediaCard({
@@ -156,11 +137,6 @@ function MediaCard({
         {/* Info */}
         <div>
           <p className="text-sm font-semibold text-white leading-snug">{file.title}</p>
-          {(file.client_name || file.project_name) && (
-            <p className="text-xs text-slate-500 mt-0.5">
-              {[file.client_name, file.project_name].filter(Boolean).join(' · ')}
-            </p>
-          )}
           <p className="text-[11px] text-slate-600 mt-1">
             {file.uploaded_by} · {fmtDate(file.created_at)}
           </p>
