@@ -16,6 +16,7 @@ import { TeamPage } from './pages/settings/Team'
 import { SectorsPage } from './pages/settings/Sectors'
 import { DeliverablesPage } from './pages/settings/Deliverables'
 import { StandardTasksPage } from './pages/settings/StandardTasks'
+import { EditorialLinesPage } from './pages/settings/EditorialLines'
 import { ProfilePage } from './pages/Profile'
 import { PlaceholderPage } from './pages/Placeholder'
 import { LoginPage } from './pages/Login'
@@ -115,6 +116,11 @@ export default function App() {
                       <Route path="sectors" element={<SectorsPage />} />
                       <Route path="deliverables" element={<DeliverablesPage />} />
                       <Route path="templates" element={<StandardTasksPage />} />
+                      <Route path="editorial-lines" element={
+                        <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/settings">
+                          <EditorialLinesPage />
+                        </ProtectedRoute>
+                      } />
                     </Route>
 
                     <Route path="nexus" element={<PortalNexusPage />} />

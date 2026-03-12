@@ -86,7 +86,8 @@ const CONFIG_ITEM: NavItem = {
     { label: 'Equipe',        to: '/settings/team' },
     { label: 'Setores',       to: '/settings/sectors' },
     { label: 'Deliverables',    to: '/settings/deliverables' },
-    { label: 'Tarefas Padrão',  to: '/settings/templates' },
+    { label: 'Tarefas Padrão',    to: '/settings/templates' },
+    { label: 'Linhas Editoriais', to: '/settings/editorial-lines' },
   ],
 }
 
