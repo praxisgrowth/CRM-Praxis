@@ -5,10 +5,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { CalendarGrid } from './CalendarGrid'
 import { useCalendarTasks } from '../../hooks/useCalendarTasks'
 import { STATUS_CONFIG } from '../../lib/nexus-utils'
-import type { TaskWithEditorialLine } from '../../hooks/useCalendarTasks'
+import { ContentDetailModal } from '../operations/ContentDetailModal'
+import type { TaskWithEditorialLine, CalendarNexusFile } from '../../hooks/useCalendarTasks'
 
 interface Props {
-  clientId: string
+  clientId?: string | null
 }
 
 const MONTH_NAMES = [
@@ -21,17 +22,18 @@ export function ClientCalendar({ clientId }: Props) {
     useCalendarTasks({ clientId })
 
   const [detail, setDetail] = useState<TaskWithEditorialLine | null>(null)
+  const [selectedFile, setSelectedFile] = useState<CalendarNexusFile | null>(null)
 
   const monthLabel = `${MONTH_NAMES[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`
 
   function handleTaskClick(task: TaskWithEditorialLine) {
-    const firstFile = task.nexus_files?.[0]
-    if (firstFile?.url) {
-      // Task has a deliverable with a URL — open it directly
-      window.open(firstFile.url, '_blank', 'noopener,noreferrer')
+    // Always set the task as active to show the modal
+    setDetail(task)
+    // If it has a file, set it for the preview
+    if (task.nexus_files && task.nexus_files.length > 0) {
+      setSelectedFile(task.nexus_files[0])
     } else {
-      // No file yet — show detail panel
-      setDetail(prev => prev?.id === task.id ? null : task)
+      setSelectedFile(null)
     }
   }
 
@@ -133,6 +135,19 @@ export function ClientCalendar({ clientId }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Content Detail Modal */}
+      {detail && (
+        <ContentDetailModal
+          file={selectedFile}
+          taskTitle={detail.title}
+          taskDescription={detail.description ?? null}
+          onClose={() => {
+            setSelectedFile(null)
+            setDetail(null)
+          }}
+        />
+      )}
     </div>
   )
 }

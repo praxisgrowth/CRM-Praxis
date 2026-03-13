@@ -144,19 +144,27 @@ Interface de alta conversão focada em velocidade e dados.
 
 ---
 
-## 🚀 Fase 4 · Nexus Avançado (Próximos Passos)
+## 🚀 Fase 4 · Nexus Avançado & Calendário Editorial (Próximos Passos)
 
-Evolução para automação total e métricas de desempenho.
+Evolução para automação total, métricas de desempenho e planejamento de conteúdo.
 
 - [ ] **Notificações Ativas (n8n)**:
   - [ ] Preparar webhooks no Supabase disparados por mudanças de status de entregáveis.
   - [ ] Fluxo n8n para avisar equipe no WhatsApp quando o cliente pedir ajuste ou dúvida.
-- [ ] **Magic Links (Segurança)**:
-  - [ ] Implementar login via e-mail sem senha para facilitar acesso do cliente.
-- [ ] **Versionamento de Entregáveis**:
-  - [ ] Estrutura para salvar histórico (V1, V2) de artes e copies após revisões.
-- [x] **Dashboard de SLA**:
-  - [x] Painel interno para medir tempo médio de resposta da agência vs. tempo de aprovação do cliente.
+- [ ] **Acesso & Segurança**:
+  - [ ] **Magic Links**: Implementar login via e-mail sem senha (OTP Supabase) para facilitar acesso do cliente.
+- [ ] **Gestão de Conteúdo & Calendário**:
+  - [ ] **Calendário Editorial**: View de calendário dinâmico (grade mensal) para cliente e equipe.
+  - [ ] **Modo Calendário v1**: Toggle Lista/Calendário baseado na `publish_date`.
+  - [ ] **Batch Creation**: Interface para rascunhar múltiplos posts de uma vez no calendário.
+  - [ ] **Versionamento**: Tabela `nexus_file_versions` para histórico (V1, V2) após revisões.
+- [ ] **Métricas & SLA**:
+  - [ ] **Dashboard SLA**: Painel para medir tempo médio de resposta da agência vs. tempo de aprovação do cliente.
+  - [ ] **Timestamps de Performance**: Logar `enviado_para_aprovacao_em` e `respondido_pelo_cliente_em`.
+- [ ] **Refinamentos de UI/UX Portal**:
+  - [ ] **Botão "Sugerir Ideia"**: Permite ao cliente criar um novo briefing/card do zero.
+  - [ ] **Ação "Dúvida"**: Novo status/fluxo para chat/comentário sobre itens específicos.
+  - [ ] **Abas Inativas (SOON)**: Brand Folder e Métricas de Ads com selo de em breve.
 
 ---
 

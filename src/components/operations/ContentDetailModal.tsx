@@ -4,7 +4,8 @@ import { TYPE_CONFIG, STATUS_CONFIG } from '../../lib/nexus-utils'
 import type { NexusFile } from '../../hooks/useNexus'
 
 interface Props {
-  file: NexusFile
+  file?: NexusFile | null
+  taskTitle: string
   taskDescription?: string | null
   onClose: () => void
 }
@@ -105,14 +106,14 @@ function SmartPreview({ url, type }: { url: string; type: string }) {
 
 /* ─── Modal ─────────────────────────────────────────── */
 
-export function ContentDetailModal({ file, taskDescription, onClose }: Props) {
-  const tCfg = TYPE_CONFIG[file.type]
-  const sCfg = STATUS_CONFIG[file.status]
+export function ContentDetailModal({ file, taskTitle, taskDescription, onClose }: Props) {
+  const tCfg = file ? TYPE_CONFIG[file.type] : { label: 'Tarefa', color: '#6366f1', icon: FileText }
+  const sCfg = (file && STATUS_CONFIG[file.status]) ? STATUS_CONFIG[file.status] : { label: 'Agendado', bg: 'rgba(99,102,241,0.12)', color: '#818cf8' }
   const TypeIcon = tCfg.icon
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
@@ -138,7 +139,7 @@ export function ContentDetailModal({ file, taskDescription, onClose }: Props) {
               <TypeIcon size={15} style={{ color: tCfg.color }} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{file.title}</p>
+              <p className="text-sm font-semibold text-white truncate">{file?.title || taskTitle}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded"
@@ -156,7 +157,7 @@ export function ContentDetailModal({ file, taskDescription, onClose }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {file.url && (
+            {file?.url && (
               <a
                 href={file.url}
                 target="_blank"
@@ -178,16 +179,38 @@ export function ContentDetailModal({ file, taskDescription, onClose }: Props) {
         {/* Body */}
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
           {/* Smart Preview */}
-          {file.url && <SmartPreview url={file.url} type={file.type} />}
+          {file?.url ? (
+            <SmartPreview url={file.url} type={file.type} />
+          ) : (
+            <div
+              className="w-full rounded-xl flex flex-col items-center justify-center gap-3 py-10"
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)' }}
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center">
+                <FileText size={18} className="text-slate-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">Aguardando envio do arquivo final</p>
+            </div>
+          )}
 
-          {/* File description */}
-          {file.description && (
+          {/* File description / Caption */}
+          {file?.description && (
             <div
               className="rounded-xl px-4 py-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ 
+                background: (file.type === 'imagem' || file.type === 'video') 
+                  ? 'rgba(99,102,241,0.08)' 
+                  : 'rgba(255,255,255,0.03)', 
+                border: (file.type === 'imagem' || file.type === 'video')
+                  ? '1px solid rgba(99,102,241,0.2)'
+                  : '1px solid rgba(255,255,255,0.06)'
+              }}
             >
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1.5">Observações</p>
-              <p className="text-xs text-slate-300 leading-relaxed">{file.description}</p>
+              <p className="text-[10px] text-indigo-400 border-indigo-400 uppercase font-bold tracking-wider mb-1.5 flex items-center gap-1.5">
+                <FileText size={10} />
+                {(file.type === 'imagem' || file.type === 'video') ? 'Legenda do Post' : 'Observações'}
+              </p>
+              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{file.description}</p>
             </div>
           )}
 
@@ -204,8 +227,8 @@ export function ContentDetailModal({ file, taskDescription, onClose }: Props) {
 
           {/* Meta */}
           <div className="flex items-center gap-3 text-[10px] text-slate-600">
-            {file.uploaded_by && <span>Por: <span className="text-slate-500">{file.uploaded_by}</span></span>}
-            {file.created_at && (
+            {file?.uploaded_by && <span>Por: <span className="text-slate-500">{file.uploaded_by}</span></span>}
+            {file?.created_at && (
               <span>
                 {new Date(file.created_at).toLocaleDateString('pt-BR', {
                   day: '2-digit', month: 'short', year: 'numeric',

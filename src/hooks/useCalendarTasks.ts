@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import type { TaskStatus, Priority, EditorialLine } from '../lib/database.types'
 import type { TaskWithRelations } from './useTaskManager'
-import type { NexusFileStatus } from './useNexus'
+import type { NexusFile } from './useNexus'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as unknown as { from(t: string): any }
@@ -15,11 +15,9 @@ export interface CalendarFilters {
   priority?:  Priority   | 'todos'
 }
 
-// Minimal nexus file shape needed for the client calendar
-export interface CalendarNexusFile {
-  id:     string
-  url:    string | null
-  status: NexusFileStatus
+// Full nexus file shape needed for the detail modal
+export interface CalendarNexusFile extends NexusFile {
+  task_id: string
 }
 
 export interface TaskWithEditorialLine extends TaskWithRelations {
@@ -68,7 +66,7 @@ export function useCalendarTasks(filters: CalendarFilters = {}, initialMonth?: D
       const [lineRes, nexusRes] = await Promise.all([
         db.from('editorial_lines').select('*'),
         taskIds.length > 0
-          ? db.from('nexus_files').select('id, url, status, task_id').in('task_id', taskIds)
+          ? db.from('nexus_files').select('*').in('task_id', taskIds)
           : Promise.resolve({ data: [] }),
       ])
 
@@ -79,7 +77,7 @@ export function useCalendarTasks(filters: CalendarFilters = {}, initialMonth?: D
       const nexusMap: Record<string, CalendarNexusFile[]> = {}
       for (const nf of (nexusRes.data ?? []) as any[]) {
         if (!nexusMap[nf.task_id]) nexusMap[nf.task_id] = []
-        nexusMap[nf.task_id].push({ id: nf.id, url: nf.url, status: nf.status })
+        nexusMap[nf.task_id].push(nf)
       }
 
       // Compute isBlocked parity with useTaskManager

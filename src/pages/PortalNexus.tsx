@@ -13,6 +13,7 @@ import { NexusBrandFolder } from '../components/nexus/NexusBrandFolder'
 import { useAuth } from '../contexts/AuthContext'
 import type { NexusFile, NexusFileStatus } from '../hooks/useNexus'
 import { TYPE_CONFIG, STATUS_CONFIG, fmtDate } from '../lib/nexus-utils'
+import { ContentDetailModal } from '../components/operations/ContentDetailModal'
 
 type ApprovalAction = 'aprovado' | 'ajuste' | 'duvida' | 'sugestao'
 
@@ -55,6 +56,7 @@ function MediaCard({
   submitting,
   justSuggested,
   clientView = false,
+  onOpenPreview,
 }: {
   file: NexusFile
   activeState: { fileId: string; action: ApprovalAction; comment: string } | null
@@ -65,6 +67,7 @@ function MediaCard({
   submitting: boolean
   justSuggested: string | null
   clientView?: boolean
+  onOpenPreview: (file: NexusFile) => void
 }) {
   const isActive     = activeState !== null
   const typeConf     = TYPE_CONFIG[file.type]
@@ -93,12 +96,17 @@ function MediaCard({
     >
       {/* Preview area */}
       <div
-        className="relative h-36 flex items-center justify-center flex-shrink-0"
+        className="relative h-36 flex items-center justify-center flex-shrink-0 cursor-pointer group/preview"
+        onClick={() => onOpenPreview(file)}
         style={{
           background: `linear-gradient(135deg, ${typeConf.color}18 0%, ${typeConf.color}06 100%)`,
           borderBottom: '1px solid rgba(255,255,255,0.04)',
         }}
       >
+        {/* Hover overlay hint */}
+        <div className="absolute inset-0 bg-indigo-500/0 group-hover/preview:bg-indigo-500/5 flex items-center justify-center transition-all">
+          <Eye size={20} className="text-white opacity-0 group-hover/preview:opacity-100 transition-opacity" />
+        </div>
         {/* Status badge — top-left */}
         <div
           className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg"
@@ -142,11 +150,16 @@ function MediaCard({
           </p>
         </div>
 
-        {/* Description */}
+        {/* Description / Caption */}
         {file.description && (
-          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-            {file.description}
-          </p>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
+              {(file.type === 'imagem' || file.type === 'video') ? 'Legenda:' : 'Observações:'}
+            </span>
+            <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 whitespace-pre-wrap">
+              {file.description}
+            </p>
+          </div>
         )}
 
         {/* Suggestion sent */}
@@ -290,6 +303,7 @@ export function PortalNexusPage() {
   const [submitting,      setSubmitting]      = useState(false)
   const [justSuggested,   setJustSuggested]  = useState<string | null>(null)
   const [aprovacaoView,   setAprovacaoView]  = useState<'grade' | 'calendario'>('grade')
+  const [previewFile,     setPreviewFile]     = useState<NexusFile | null>(null)
   const isClientView = viewMode === 'cliente' || role === 'CLIENT'
   const calendarClientId = profile?.client_id ?? null
 
@@ -536,8 +550,8 @@ export function PortalNexusPage() {
             </div>
           )}
 
-          {/* Calendar view (client only) */}
-          {isClientView && aprovacaoView === 'calendario' && calendarClientId && (
+          {/* Calendar view (admin sees all or specific client sees their own) */}
+          {isClientView && aprovacaoView === 'calendario' && (
             <div className="flex-1 overflow-y-auto pb-2">
               <ClientCalendar clientId={calendarClientId} />
             </div>
@@ -552,17 +566,27 @@ export function PortalNexusPage() {
                   file={file}
                   activeState={activeState?.fileId === file.id ? activeState : null}
                   onSelectAction={(fileId, action) => setActiveState({ fileId, action, comment: '' })}
-                  onCommentChange={(comment) => setActiveState(prev => prev ? { ...prev, comment } : null)}
+                  onCommentChange={comment => setActiveState(prev => prev ? { ...prev, comment } : null)}
                   onCancel={() => setActiveState(null)}
                   onConfirm={handleConfirm}
                   submitting={submitting}
                   justSuggested={justSuggested}
                   clientView={isClientView}
+                  onOpenPreview={setPreviewFile}
                 />
               ))}
             </div>
           )}
         </>
+      )}
+
+      {/* Smart Preview Modal */}
+      {previewFile && (
+        <ContentDetailModal
+          file={previewFile}
+          taskTitle={previewFile.title}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
 
       {/* ── Tab: Brand Folder (Deliverables Tracker) ── */}

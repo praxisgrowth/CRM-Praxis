@@ -434,14 +434,18 @@ export function TaskNexusIntegration({ task }: Props) {
               </div>
             )}
 
-            {/* Description */}
+            {/* Description / Caption */}
             <div>
-              <label className={labelClass}>Observações</label>
+              <label className={labelClass}>
+                {(type === 'imagem' || type === 'video') ? 'Legenda / Copy' : 'Observações'}
+              </label>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="Contexto, instruções de aprovação…"
-                rows={2}
+                placeholder={(type === 'imagem' || type === 'video') 
+                  ? "Digite ou cole a legenda do post aqui…" 
+                  : "Contexto, instruções de aprovação…"}
+                rows={3}
                 className={inputClass}
                 style={{ resize: 'vertical', lineHeight: '1.5' }}
               />
@@ -484,6 +488,7 @@ export function TaskNexusIntegration({ task }: Props) {
       {detailFile && (
         <ContentDetailModal
           file={detailFile}
+          taskTitle={task.title}
           taskDescription={task.description ?? null}
           onClose={() => setDetailFile(null)}
         />

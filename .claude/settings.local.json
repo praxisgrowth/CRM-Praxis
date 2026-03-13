@@ -24,7 +24,9 @@
       "Bash(find ./src -name \"*operations*\" -type f | grep -E \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(find ./src/hooks -name \"*.ts\" | xargs ls -lah | head -20)",
       "Bash(grep -r \"sla_percent\\\\|deadline\\\\|actual_hours\" ./supabase/*.sql | head -30)",
-      "Bash(taskkill /F /IM node.exe 2>&1; echo \"killed\")"
+      "Bash(taskkill /F /IM node.exe 2>&1; echo \"killed\")",
+      "Bash(cd \"C:\\\\Users\\\\gusta\\\\Documents\\\\Antigravity\\\\CRM Praxis\\\\.worktrees\\\\nexus-expansion\" && npm test 2>&1 | head -20)",
+      "Bash(cd \"C:\\\\Users\\\\gusta\\\\Documents\\\\Antigravity\\\\CRM Praxis\\\\.worktrees\\\\nexus-expansion\" && gh pr create --title \"feat\\(nexus\\): expansão do portal cliente + refatoração de configs\" --body \"$\\(cat <<'EOF'\n## Summary\n- Cria `src/lib/nexus-utils.ts` centralizando `TYPE_CONFIG`, `STATUS_CONFIG` e `fmtDate` \\(eliminando duplicação entre Admin e Cliente\\)\n- Expande `NexusPortal.tsx` \\(visão cliente\\) com sistema de abas **Entregáveis / Timeline**, barra de progresso dinâmica e integração com `NexusTimeline`\n- Corrige erros TS pré-existentes em `PortalNexus.tsx` \\(campos inexistentes `client_name`/`project_name`\\) e deleta arquivo backup corrompido\n- Aprimora mensagens de erro da Edge Function `invite-user` em `Team.tsx`\n\n## Test Plan\n- [ ] Acessar rota do portal cliente e verificar aba \"Timeline\" aparece corretamente\n- [ ] Verificar barra de progresso reflete % de aprovações reais\n- [ ] Navegar pelo Nexus Admin e Cliente — ícones e cores devem estar consistentes\n- [ ] Disparar convite de usuário e validar mensagem de erro amigável em caso de falha\n- [ ] `npm run build` deve passar com zero erros TS ✅\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\nEOF\n\\)\" 2>&1)"
     ]
   }
 }
