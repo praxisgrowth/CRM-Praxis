@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -111,11 +111,20 @@ function SubItem({ label, to }: { label: string; to: string }) {
 }
 
 /* ─── Nav Item Row ───────────────────────────────── */
-function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+function NavItemRow({ 
+  item, 
+  collapsed, 
+  isOpen, 
+  onToggle 
+}: { 
+  item: NavItem; 
+  collapsed: boolean; 
+  isOpen: boolean; 
+  onToggle: () => void 
+}) {
   const location = useLocation()
   const hasChildren = !!item.children
   const isChildActive = item.children?.some(c => location.pathname.startsWith(c.to)) ?? false
-  const [open, setOpen] = useState(isChildActive)
 
   const Icon = item.icon
 
@@ -152,10 +161,10 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
   return (
     <div>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={onToggle}
         className={clsx(
           'w-full flex items-center justify-between px-4 py-3 transition-colors group',
-          isChildActive
+          isChildActive || isOpen
             ? 'text-white'
             : 'text-gray-500 hover:text-gray-200',
         )}
@@ -172,12 +181,12 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
         </div>
         {!collapsed && (
           <div className="opacity-40 group-hover:opacity-100 transition-opacity">
-            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </div>
         )}
       </button>
 
-      {open && !collapsed && (
+      {isOpen && !collapsed && (
         <div className="animate-in slide-in-from-top-1 duration-200">
           {item.children!.map(child => (
             <SubItem key={child.to} {...child} />
@@ -192,6 +201,23 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const { profile, user } = useAuth()
+  const location = useLocation()
+  const [manualExpandedLabel, setManualExpandedLabel] = useState<string | null>(null)
+  const [lastPath, setLastPath] = useState(location.pathname)
+
+  // Reset manual toggle on navigation
+  if (location.pathname !== lastPath) {
+    setLastPath(location.pathname)
+    setManualExpandedLabel(null)
+  }
+
+  const activeSectionLabel = useMemo(() => {
+    return [...NAV_ITEMS, CONFIG_ITEM].find(item => 
+      item.children?.some(c => location.pathname.startsWith(c.to))
+    )?.label ?? null
+  }, [location.pathname])
+
+  const expandedLabel = manualExpandedLabel ?? activeSectionLabel
   const role: UserRole = user === null ? 'ADMIN' : (profile?.role ?? 'MEMBER')
 
   const visibleItems = NAV_ITEMS.filter(item => {
@@ -228,12 +254,23 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar pt-4">
         {visibleItems.map(item => (
-          <NavItemRow key={item.label} item={item} collapsed={collapsed} />
+          <NavItemRow 
+            key={item.label} 
+            item={item} 
+            collapsed={collapsed} 
+            isOpen={expandedLabel === item.label}
+            onToggle={() => setManualExpandedLabel(expandedLabel === item.label ? "NONE" : item.label)}
+          />
         ))}
 
         {showConfigs && (
           <div className="pt-4 mt-4 border-t border-white/5">
-            <NavItemRow item={CONFIG_ITEM} collapsed={collapsed} />
+            <NavItemRow 
+              item={CONFIG_ITEM} 
+              collapsed={collapsed} 
+              isOpen={expandedLabel === CONFIG_ITEM.label}
+              onToggle={() => setManualExpandedLabel(expandedLabel === CONFIG_ITEM.label ? "NONE" : CONFIG_ITEM.label)}
+            />
           </div>
         )}
       </nav>

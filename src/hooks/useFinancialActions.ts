@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
 
 export type FinancialAction = 'cancel' | 'refund' | 'postpone' | 'resend' | 'charge' | 'duplicate'
 
@@ -11,11 +12,11 @@ export interface ChargePayload {
 }
 
 export interface ActionPayload {
-  asaas_id:     string
-  payment_id:   string
-  due_date?:    string
-  value?:       number
-  description?: string
+  asaas_id:      string
+  payment_id:    string | number
+  due_date?:     string
+  value?:        number
+  description?:  string
   client_name?:  string
   client_phone?: string
   client_email?: string
@@ -36,7 +37,7 @@ export function useFinancialActions() {
     action: FinancialAction,
     payload: ActionPayload,
   ): Promise<boolean> => {
-    const key = makeKey(action, payload.payment_id)
+    const key = makeKey(action, String(payload.payment_id))
     setLoadingKeys(prev => new Set(prev).add(key))
 
     try {
@@ -59,5 +60,71 @@ export function useFinancialActions() {
     }
   }, [])
 
-  return { execute, isLoading }
+  const approvePurchase = useCallback(async (requestId: number, data: any) => {
+    try {
+      const { 
+        amount, description, category_id, recipient_name, 
+        due_date, client_id, is_recurring, category_name 
+      } = data
+
+      // 1. Insert into finance_transactions
+      const { error: insErr } = await (supabase as any)
+        .from('finance_transactions')
+        .insert({
+          description: `${category_name}: ${description}`,
+          amount: amount,
+          kind: 'expense',
+          status: 'PENDENTE',
+          category_id: category_id,
+          vencimento: due_date || new Date().toISOString().split('T')[0],
+          cliente_id: client_id || null,
+          notes: `Recebedor: ${recipient_name}${is_recurring ? ' (Recorrente)' : ''}`
+        })
+      if (insErr) throw insErr
+
+      // 2. If it's recurring, create a record in finance_recurring_expenses
+      if (is_recurring) {
+        const { error: recErr } = await (supabase as any)
+          .from('finance_recurring_expenses')
+          .insert({
+            category_id: category_id,
+            description: `${category_name}: ${description}`,
+            amount: amount,
+            party_name_custom: recipient_name,
+            start_date: due_date || new Date().toISOString().split('T')[0],
+            next_due_date: due_date || new Date().toISOString().split('T')[0], // Will be advanced by worker
+            is_active: true
+          })
+        if (recErr) console.error('[approvePurchase] Warning: Failed to create recurring expense record:', recErr)
+      }
+
+      // 3. Update compra_pendente
+      const { error: upErr } = await (supabase as any)
+        .from('compra_pendente')
+        .update({ status: 'aprovado', data_aprovacao: new Date().toISOString() })
+        .eq('id', requestId)
+      if (upErr) throw upErr
+
+      return true
+    } catch (e) {
+      console.error('[approvePurchase] Error:', e)
+      return false
+    }
+  }, [])
+
+  const rejectPurchase = useCallback(async (requestId: number) => {
+    try {
+      const { error: upErr } = await (supabase as any)
+        .from('compra_pendente')
+        .update({ status: 'rejeitado' })
+        .eq('id', requestId)
+      if (upErr) throw upErr
+      return true
+    } catch (e) {
+      console.error('[rejectPurchase] Error:', e)
+      return false
+    }
+  }, [])
+
+  return { execute, isLoading, approvePurchase, rejectPurchase }
 }

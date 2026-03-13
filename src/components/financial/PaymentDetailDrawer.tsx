@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
-import { X, Edit2, Save, X as XIcon, ExternalLink, Send, Trash2, RotateCcw, Loader2, Trash } from 'lucide-react'
-import type { FinancialPayment } from '../../lib/database.types'
+import { X, Edit2, Save, X as XIcon, ExternalLink, Send, RotateCcw, Loader2, Trash, CheckCircle2 } from 'lucide-react'
+import type { FinanceTransaction } from '../../lib/database.types'
 import { deletePayment } from '../../hooks/useBilling'
 import { useFinancialActions } from '../../hooks/useFinancialActions'
 import { supabase } from '../../lib/supabase'
 import { useAudit } from '../../hooks/useAudit'
 
 interface Props {
-  payment: FinancialPayment | null
+  payment: (FinanceTransaction & { clients?: { name: string } | null }) | null
   onClose: () => void
   onSuccess: (msg: string) => void
 }
@@ -31,12 +31,11 @@ const FIELD_READONLY: React.CSSProperties = {
 }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  PENDING:   { label: 'Pendente',   color: '#f59e0b' },
-  CONFIRMED: { label: 'Confirmado', color: '#10b981' },
-  RECEIVED:  { label: 'Recebido',   color: '#10b981' },
-  OVERDUE:   { label: 'Atrasado',   color: '#ef4444' },
-  REFUNDED:  { label: 'Estornado',  color: '#8b5cf6' },
-  CANCELLED: { label: 'Cancelado',  color: '#64748b' },
+  PAGO:       { label: 'Pago',       color: '#10b981' },
+  PENDENTE:   { label: 'Pendente',   color: '#f59e0b' },
+  ATRASADO:   { label: 'Atrasado',   color: '#ef4444' },
+  CANCELADO:  { label: 'Cancelado',  color: '#64748b' },
+  PRORROGADA: { label: 'Prorrogada', color: '#8b5cf6' },
 }
 
 function fmtBRL(raw: string) {
@@ -45,12 +44,6 @@ function fmtBRL(raw: string) {
 }
 function parseBRL(fmt: string): number {
   return parseInt(fmt.replace(/\D/g, '') || '0', 10) / 100
-}
-
-function getClientContact(p: FinancialPayment) {
-  const phone = p.clients?.phone ?? (p as any).client_phone ?? ''
-  const email = p.clients?.email ?? (p as any).client_email ?? ''
-  return { phone: String(phone).replace(/\D/g, ''), email: String(email) }
 }
 
 export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
@@ -67,8 +60,8 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
   useEffect(() => {
     if (!payment) return
     setDesc(payment.description)
-    setValueFmt(payment.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
-    setDueDate(payment.due_date ?? '')
+    setValueFmt(payment.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
+    setDueDate(payment.vencimento ?? '')
     setEditMode(false); setError(null); setConfirming(null)
   }, [payment])
 
@@ -78,15 +71,13 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
   const p = payment
 
   const st        = STATUS_CFG[p.status] ?? { label: p.status, color: '#64748b' }
-  void true // canEdit: sempre permitir editar campos locais
-  const canCancel = !!p.asaas_id && ['PENDING', 'OVERDUE'].includes(p.status)
-  const canRefund = !!p.asaas_id && ['CONFIRMED', 'RECEIVED'].includes(p.status)
-  const { phone, email } = getClientContact(p)
+  const canCancel = !!p.reference && ['PENDENTE', 'ATRASADO'].includes(p.status)
+  const canRefund = !!p.reference && ['PAGO'].includes(p.status)
 
   function resetEdit() {
     setDesc(p.description)
-    setValueFmt(p.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
-    setDueDate(p.due_date ?? '')
+    setValueFmt(p.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
+    setDueDate(p.vencimento ?? '')
     setEditMode(false); setError(null)
   }
 
@@ -97,64 +88,112 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     if (!dueDate)       { setError('Data obrigatória.'); return }
     setLoading(true); setError(null)
     try {
-      if (p.asaas_id) {
+      if (p.reference) {
         const ok = await execute('postpone', {
-          asaas_id:     p.asaas_id,
+          asaas_id:     p.reference,
           payment_id:   p.id,
           due_date:     dueDate,
           value,
           description:  desc.trim(),
-          client_name:  p.client_name ?? '',
-          client_phone: phone,
-          client_email: email,
         })
         if (!ok) throw new Error('Falha ao atualizar no Asaas.')
       } else {
         const { error: upErr } = await (supabase as any)
-          .from('financial_payments')
-          .update({ description: desc.trim(), value, due_date: dueDate })
+          .from('finance_transactions')
+          .update({ description: desc.trim(), amount: value, vencimento: dueDate })
           .eq('id', p.id)
         if (upErr) throw upErr
       }
 
-      await logAction('Update Payment', 'financial_payment', p.id, {
-        old: { description: p.description, value: p.value, due_date: p.due_date },
-        new: { description: desc.trim(), value, due_date: dueDate }
+      await logAction('Update Transaction', 'finance_transaction', String(p.id), {
+        old: { description: p.description, amount: p.amount, vencimento: p.vencimento },
+        new: { description: desc.trim(), amount: value, vencimento: dueDate }
       })
 
-      onSuccess('Cobrança atualizada!'); onClose()
+      onSuccess('Transação atualizada!'); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao salvar.')
     } finally { setLoading(false) }
   }
 
   async function handleCancel() {
-    if (!p.asaas_id) return
+    if (!p.reference) return
     if (confirming !== 'cancel') { setConfirming('cancel'); return }
     setLoading(true); setError(null)
-    const ok = await execute('cancel', { asaas_id: p.asaas_id, payment_id: p.id })
-    setLoading(false)
-    if (ok) {
-      await logAction('Cancel Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
-      onSuccess('Cobrança cancelada! Cliente notificado.'); onClose()
-    } else {
-      setError('Erro ao cancelar. Tente novamente.')
+
+    try {
+      if (p.reference === 'manual') {
+        const { error: upErr } = await (supabase as any)
+          .from('finance_transactions')
+          .update({ status: 'CANCELADO' })
+          .eq('id', p.id)
+        if (upErr) throw upErr
+        await logAction('Manual Cancel', 'finance_transaction', String(p.id), { old: p.status, new: 'CANCELADO' })
+        onSuccess('Cobrança cancelada localmente!'); onClose()
+      } else {
+        const ok = await execute('cancel', { asaas_id: p.reference, payment_id: p.id })
+        if (ok) {
+          await logAction('Cancel Transaction', 'finance_transaction', String(p.id), { asaas_id: p.reference })
+          onSuccess('Cobrança cancelada!'); onClose()
+        } else {
+          throw new Error('Erro ao cancelar no Asaas.')
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao cancelar.')
       setConfirming(null)
+    } finally {
+      setLoading(false)
     }
   }
 
+  async function handleManualConfirm() {
+    setLoading(true); setError(null)
+    try {
+      const { error: upErr } = await (supabase as any)
+        .from('finance_transactions')
+        .update({ 
+          status: 'PAGO',
+          payment_date: new Date().toISOString()
+        })
+        .eq('id', p.id)
+      if (upErr) throw upErr
+
+      await logAction('Manual Confirm', 'finance_transaction', String(p.id), { old: p.status, new: 'PAGO' })
+      onSuccess('Pagamento confirmado manualmente!'); onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao confirmar.')
+    } finally { setLoading(false) }
+  }
+
   async function handleRefund() {
-    if (!p.asaas_id) return
+    if (!p.reference) return
     if (confirming !== 'refund') { setConfirming('refund'); return }
     setLoading(true); setError(null)
-    const ok = await execute('refund', { asaas_id: p.asaas_id, payment_id: p.id })
-    setLoading(false)
-    if (ok) {
-      await logAction('Refund Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
-      onSuccess('Cobrança estornada! Cliente notificado.'); onClose()
-    } else {
-      setError('Erro ao estornar. Tente novamente.')
+
+    try {
+      if (p.reference === 'manual') {
+        const { error: upErr } = await (supabase as any)
+          .from('finance_transactions')
+          .update({ status: 'CANCELADO' })
+          .eq('id', p.id)
+        if (upErr) throw upErr
+        await logAction('Manual Refund', 'finance_transaction', String(p.id), { old: p.status, new: 'CANCELADO' })
+        onSuccess('Cobrança estornada localmente!'); onClose()
+      } else {
+        const ok = await execute('refund', { asaas_id: p.reference, payment_id: p.id })
+        if (ok) {
+          await logAction('Refund Transaction', 'finance_transaction', String(p.id), { asaas_id: p.reference })
+          onSuccess('Cobrança estornada!'); onClose()
+        } else {
+          throw new Error('Erro ao estornar no Asaas.')
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao estornar.')
       setConfirming(null)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -163,7 +202,7 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
     setLoading(true); setError(null)
     try {
       await deletePayment(p.id)
-      await logAction('Delete Payment', 'financial_payment', p.id, { description: p.description, value: p.value })
+      await logAction('Delete Transaction', 'finance_transaction', String(p.id), { description: p.description, amount: p.amount })
       onSuccess('Registro excluído!'); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao excluir.')
@@ -171,10 +210,10 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
   }
 
   async function handleResend() {
-    if (!p.asaas_id) return
-    const ok = await execute('resend', { asaas_id: p.asaas_id, payment_id: p.id })
+    if (!p.reference || p.reference === 'manual') return
+    const ok = await execute('resend', { asaas_id: p.reference, payment_id: p.id })
     if (ok) {
-      await logAction('Resend Payment', 'financial_payment', p.id, { asaas_id: p.asaas_id })
+      await logAction('Resend Transaction', 'finance_transaction', String(p.id), { asaas_id: p.reference })
       onSuccess('2ª via reenviada pelo Asaas!')
     } else {
       setError('Erro ao reenviar. Tente novamente.')
@@ -182,127 +221,230 @@ export function PaymentDetailDrawer({ payment, onClose, onSuccess }: Props) {
   }
 
   return (
-    <>
-      <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
-      <div className="fixed right-0 top-0 h-full z-50 flex flex-col" style={{ width: 420, background: 'rgba(8,12,20,0.98)', borderLeft: '1px solid rgba(0,210,255,0.18)', boxShadow: '-32px 0 80px rgba(0,0,0,0.6)', animation: 'slide-in-right 0.22s ease-out' }}>
-
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      
+      <div className="relative w-full max-w-md bg-[#0a0f1d] border-l border-white/10 shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-semibold text-white">Detalhe da Cobrança</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{p.client_name ?? '—'}</p>
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              Detalhes da Transação
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ backgroundColor: st.color + '20', color: st.color, border: `1px solid ${st.color}40` }}>
+                {st.label}
+              </span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">ID: #{p.id}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={{ background: `${st.color}18`, color: st.color, border: `1px solid ${st.color}40` }}>{st.label}</span>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.04)' }}><X size={15} /></button>
-          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400 hover:text-white">
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Body */}
-        <div className="flex flex-col flex-1 overflow-y-auto px-5 py-4 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Descrição</label>
-            {editMode
-              ? <input type="text" value={desc} onChange={e => setDesc(e.target.value)} style={FIELD_BASE} />
-              : <div style={FIELD_READONLY}>{p.description}</div>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Valor</label>
-            {editMode
-              ? <input type="text" inputMode="numeric" value={valueFmt} onChange={e => setValueFmt(fmtBRL(e.target.value))} onFocus={e => e.target.select()} style={FIELD_BASE} />
-              : <div style={FIELD_READONLY}>{p.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Vencimento</label>
-            {editMode
-              ? <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{ ...FIELD_BASE, colorScheme: 'dark' }} />
-              : <div style={FIELD_READONLY}>{p.due_date ? new Date(p.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</div>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo</label>
-            <div style={FIELD_READONLY}>{p.type === 'ONE_OFF' ? 'Cobrança Única' : 'Assinatura Recorrente'}</div>
-          </div>
-          {p.payment_link && (
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Link de Pagamento</label>
-              <a href={p.payment_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium transition-colors" style={{ color: '#00d2ff' }}>
-                <ExternalLink size={13} /> Abrir link de pagamento
-              </a>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
             </div>
           )}
-          {p.asaas_id && (
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">ID Asaas</label>
-              <div style={{ ...FIELD_READONLY, fontSize: 12 }}>{p.asaas_id}</div>
-            </div>
-          )}
-          {error && <p className="text-xs text-red-400">⚠ {error}</p>}
 
-          {/* Confirmação de ação destrutiva */}
-          {confirming && (
-            <div className="px-3 py-2.5 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <p className="text-red-400 font-semibold mb-1">Confirmar {confirming === 'cancel' ? 'cancelamento' : confirming === 'refund' ? 'estorno' : 'exclusão'}?</p>
-              <p className="text-slate-500">Esta ação não pode ser desfeita.</p>
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => setConfirming(null)} className="flex-1 py-1.5 rounded-lg text-slate-400 text-xs" style={{ background: 'rgba(255,255,255,0.05)' }}>Voltar</button>
-                <button 
-                  onClick={confirming === 'delete' ? handleDelete : (confirming === 'cancel' ? handleCancel : handleRefund)} 
-                  disabled={loading} 
-                  className="flex-1 py-1.5 rounded-lg text-red-400 text-xs font-semibold" 
-                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}
-                >
-                  {loading ? <Loader2 size={12} className="animate-spin mx-auto" /> : `Confirmar ${confirming === 'cancel' ? 'Cancelamento' : confirming === 'refund' ? 'Estorno' : 'Exclusão'}`}
-                </button>
+          {/* Section: Descrição */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição</label>
+            {editMode ? (
+              <input
+                style={FIELD_BASE}
+                value={desc}
+                onChange={e => setDesc(e.target.value)}
+                placeholder="Ex: Consultoria Mensal"
+              />
+            ) : (
+              <div style={FIELD_READONLY} className="text-lg font-medium text-white">{p.description}</div>
+            )}
+          </div>
+
+          {/* Cliente */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cliente</label>
+            <div style={FIELD_READONLY} className="text-white font-medium flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+              {p.clients?.name || 'Cliente não identificado'}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Valor */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor</label>
+              {editMode ? (
+                <input
+                  style={FIELD_BASE}
+                  value={valueFmt}
+                  onChange={e => setValueFmt(fmtBRL(e.target.value))}
+                />
+              ) : (
+                <div style={FIELD_READONLY} className="font-bold text-emerald-400 text-xl">
+                  {p.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </div>
+              )}
+            </div>
+
+            {/* Vencimento */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vencimento</label>
+              {editMode ? (
+                <input
+                  type="date"
+                  style={{ ...FIELD_BASE, colorScheme: 'dark' }}
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                />
+              ) : (
+                <div style={FIELD_READONLY} className="text-white hover:text-sky-400 transition-colors">
+                  {p.vencimento ? new Date(p.vencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Metadata */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo</label>
+              <div style={FIELD_READONLY} className="capitalize flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${p.kind === 'income' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                {p.kind === 'income' ? 'Receita' : 'Despesa'}
+              </div>
+            </div>
+            {p.reference && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Asaas Reference</label>
+                <div style={FIELD_READONLY} className="text-[10px] flex items-center justify-between font-mono bg-white/5">
+                   {p.reference}
+                   <a href={`https://www.asaas.com/customerCharge/show/${p.reference.replace('pay_', '')}`} target="_blank" rel="noreferrer" className="p-1 hover:bg-white/10 rounded text-sky-400 transition-colors">
+                     <ExternalLink size={12} />
+                   </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {p.installment_no && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parcelamento</label>
+              <div style={FIELD_READONLY} className="text-white">
+                Parcela <span className="text-sky-400 font-bold">{p.installment_no}</span> de <span className="text-slate-400">{p.installment_total}</span>
               </div>
             </div>
           )}
+
+          {p.notes && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observações Internas</label>
+              <div style={FIELD_READONLY} className="whitespace-pre-wrap text-xs leading-relaxed italic">{p.notes}</div>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-4 flex flex-col gap-2 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        {/* Footer Actions */}
+        <div className="p-6 bg-white/[0.02] border-t border-white/5 space-y-4">
           {editMode ? (
-            <div className="flex gap-2">
-              <button onClick={resetEdit} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-slate-400 transition-colors" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <XIcon size={13} /> Descartar
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={resetEdit}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-slate-300 hover:bg-white/10 transition-all border border-white/10 text-sm"
+              >
+                Descartar
               </button>
-              <button onClick={handleSave} disabled={loading} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #00d2ff 0%, #9d50bb 100%)', boxShadow: '0 0 20px rgba(0,210,255,0.2)' }}>
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={13} />}
-                {loading ? 'Salvando...' : 'Salvar Alterações'}
+              <button 
+                onClick={handleSave}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sky-500 text-white hover:bg-sky-400 transition-all font-semibold shadow-lg shadow-sky-500/20 disabled:opacity-50 text-sm"
+              >
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                Salvar Alterações
               </button>
             </div>
           ) : (
             <>
-              <div className="flex gap-2">
-                {p.asaas_id && (
-                  <button onClick={handleResend} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-slate-400 transition-colors" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Send size={11} /> 2ª Via
-                  </button>
-                )}
-                <button onClick={() => setEditMode(true)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-colors" style={{ background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.3)', color: '#00d2ff' }}>
-                  <Edit2 size={11} /> Editar
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setEditMode(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-slate-300 hover:bg-white/10 transition-all border border-white/10 text-xs font-semibold"
+                >
+                  <Edit2 size={14} />
+                  Editar Registro
                 </button>
+                {p.reference && (
+                  <button 
+                    onClick={handleResend}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 transition-all border border-sky-500/20 text-xs font-semibold"
+                  >
+                    <Send size={14} />
+                    Reenviar 2ª Via
+                  </button>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {canCancel && !confirming && (
-                  <button onClick={handleCancel} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <Trash2 size={11} /> Cancelar Asaas
+
+              <div className="flex flex-col gap-2.5 pt-2">
+                {p.reference === 'manual' && p.status !== 'PAGO' && (
+                  <button 
+                    onClick={handleManualConfirm}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-400 transition-all font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20"
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                    Confirmar Recebimento Manual
                   </button>
                 )}
-                {canRefund && !confirming && (
-                  <button onClick={handleRefund} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                    <RotateCcw size={11} /> Estornar Asaas
+
+                {canCancel && (
+                  <button 
+                    onClick={handleCancel}
+                    disabled={loading}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all text-xs font-bold uppercase tracking-wider
+                      ${confirming === 'cancel' 
+                        ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse' 
+                        : 'bg-white/5 border-white/10 text-red-400 hover:bg-red-500/10'}`}
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <XIcon size={16} />}
+                    {confirming === 'cancel' ? 'Confirmar Cancelamento Agora' : 'Cancelar no Asaas'}
                   </button>
                 )}
-                {!confirming && (
-                  <button onClick={handleDelete} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold col-span-2" style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Trash size={11} /> Excluir Registro
+
+                {canRefund && (
+                  <button 
+                    onClick={handleRefund}
+                    disabled={loading}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all text-xs font-bold uppercase tracking-wider
+                      ${confirming === 'refund' 
+                        ? 'bg-purple-500/20 border-purple-500/40 text-purple-400 animate-pulse' 
+                        : 'bg-white/5 border-white/10 text-purple-400 hover:bg-purple-500/10'}`}
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+                    {confirming === 'refund' ? 'Confirmar Estorno Agora' : 'Estornar (Refund)'}
                   </button>
                 )}
+
+                <button 
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border transition-all text-xs font-semibold
+                    ${confirming === 'delete' 
+                      ? 'bg-red-500/20 border-red-500/40 text-red-500' 
+                      : 'bg-transparent border-transparent text-slate-600 hover:text-red-400 hover:bg-red-500/10'}`}
+                >
+                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Trash size={14} />}
+                  {confirming === 'delete' ? 'Confirmar Exclusão do Banco' : 'Excluir Apenas Local'}
+                </button>
               </div>
             </>
           )}
         </div>
       </div>
-    </>
+    </div>
   )
 }

@@ -136,35 +136,102 @@ export interface FinancialPayment {
 export type SubscriptionCycle  = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'BIMONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY'
 export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
 
-export interface FinancialSubscription {
-  id:                string
-  client_id:         string | null
-  client_name:       string | null
-  asaas_id:          string | null
-  description:       string
-  value:             number
-  cycle:             SubscriptionCycle
-  status:            SubscriptionStatus
-  billing_type:      AsaasBillingType
-  next_due_date:     string | null
-  created_at:        string
-  updated_at:        string
+
+// ─── Finance Blueprint (New Architecture) ──────────────────────
+export type FinanceTransactionKind = 'income' | 'expense'
+export type FinanceTransactionStatus = 'PENDENTE' | 'ATRASADO' | 'PAGO' | 'CANCELADO' | 'PRORROGADA'
+
+export interface FinancialKPIs {
+  mrrAtual: number
+  mrrDelta: number      // % vs mês anterior
+  churnRate: number     // % atual
+  churnDelta: number    // diferença vs mês anterior (positivo = pior)
+  saldoCaixa: number    // receitas pagas - despesas pagas
+  ltvMedio: number      // total pago / total clientes pagantes
 }
 
-export type TransactionStatus = 'pago' | 'pendente' | 'atrasado'
-export type TransactionType   = 'receita' | 'despesa'
-
-export interface FinancialTransaction {
-  id: string
-  description: string
-  amount: number
-  type: TransactionType
-  category: string
-  status: TransactionStatus
-  date: string
-  client_id: string | null
+export interface FinanceCategory {
+  id: number
+  name: string
+  kind: FinanceTransactionKind
   created_at: string
 }
+
+export interface FinanceParty {
+  id: number
+  name: string
+  document: string | null
+  phone: string | null
+  email: string | null
+  created_at: string
+}
+
+export interface FinanceTransaction {
+  id: number
+  date: string
+  payment_date: string | null
+  description: string
+  amount: number
+  kind: FinanceTransactionKind
+  status: FinanceTransactionStatus
+  vencimento: string | null
+  valor_total: number | null
+  valor_parcela: number | null
+  plano: string | null
+  forma_pagamento: string | null
+  installment_no: number | null
+  installment_total: number | null
+  compra_uuid: string | null
+  reference: string | null
+  notes: string | null
+  category_id: number | null
+  cliente_id: string | null
+  party_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FinanceRecurringContract {
+  id: number
+  cliente_id: string
+  title: string
+  amount: number
+  frequency: string
+  start_date: string
+  next_due_date: string
+  last_renewed_on: string | null
+  is_active: boolean
+  plano: string | null
+  forma_pagamento: string | null
+  category_id: number | null
+  notes: string | null
+  created_at: string
+}
+
+export interface FinanceRecurringExpense {
+  id: number
+  category_id: number | null
+  party_id: number | null
+  party_name_custom: string | null
+  description: string
+  amount: number
+  start_date: string
+  next_due_date: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface CompraPendente {
+  id: number
+  cliente_id: string | null
+  criado_por_id: string | null
+  status: 'pendente' | 'aprovado' | 'rejeitado'
+  dados_compra: Record<string, unknown>
+  dados_despesas: Record<string, unknown>
+  data_criacao: string
+  data_aprovacao: string | null
+}
+// ──────────────────────────────────────────────────────────────
 
 export interface FinancialMRREntry {
   id: string
@@ -428,24 +495,6 @@ export interface Database {
         Update: Partial<Omit<TaskAttachment, 'id' | 'created_at'>>
         Relationships: []
       }
-      financial_transactions: {
-        Row: FinancialTransaction
-        Insert: Omit<FinancialTransaction, 'id' | 'created_at'>
-        Update: Partial<Omit<FinancialTransaction, 'id' | 'created_at'>>
-        Relationships: []
-      }
-      financial_payments: {
-        Row: FinancialPayment
-        Insert: Omit<FinancialPayment, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<FinancialPayment, 'id' | 'created_at'>>
-        Relationships: []
-      }
-      financial_subscriptions: {
-        Row: FinancialSubscription
-        Insert: Omit<FinancialSubscription, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<FinancialSubscription, 'id' | 'created_at'>>
-        Relationships: []
-      }
       nexus_files: {
         Row: NexusFile
         Insert: Omit<NexusFile, 'id' | 'created_at' | 'updated_at'>
@@ -474,6 +523,42 @@ export interface Database {
         Row: AuditLog
         Insert: Omit<AuditLog, 'id' | 'created_at'>
         Update: Partial<Omit<AuditLog, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      finance_categories: {
+        Row: FinanceCategory
+        Insert: Omit<FinanceCategory, 'id' | 'created_at'>
+        Update: Partial<Omit<FinanceCategory, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      finance_parties: {
+        Row: FinanceParty
+        Insert: Omit<FinanceParty, 'id' | 'created_at'>
+        Update: Partial<Omit<FinanceParty, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      finance_transactions: {
+        Row: FinanceTransaction
+        Insert: Omit<FinanceTransaction, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<FinanceTransaction, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      finance_recurring_contracts: {
+        Row: FinanceRecurringContract
+        Insert: Omit<FinanceRecurringContract, 'id' | 'created_at'>
+        Update: Partial<Omit<FinanceRecurringContract, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      finance_recurring_expenses: {
+        Row: FinanceRecurringExpense
+        Insert: Omit<FinanceRecurringExpense, 'id' | 'created_at'>
+        Update: Partial<Omit<FinanceRecurringExpense, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      compra_pendente: {
+        Row: CompraPendente
+        Insert: Omit<CompraPendente, 'id' | 'data_criacao'>
+        Update: Partial<Omit<CompraPendente, 'id' | 'data_criacao'>>
         Relationships: []
       }
     }

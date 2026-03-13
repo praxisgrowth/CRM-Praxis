@@ -1,6 +1,6 @@
 import { Bell, Search, ChevronDown, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import clsx from 'clsx'
@@ -8,9 +8,24 @@ import clsx from 'clsx'
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const { settings } = useSettings()
   const { user, profile, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false)
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const notifications = [
     { id: 1, title: 'SLA em Risco', desc: 'Projeto "Rebranding" vence em 2h', type: 'urgent' },
@@ -45,7 +60,7 @@ export function Header() {
 
       <div className="flex items-center gap-6">
         {/* Notifications */}
-        <div className="relative">
+        <div className="relative" ref={notificationsRef}>
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
             className="relative p-2 text-gray-400 hover:text-praxis-cyan transition-colors"
@@ -53,14 +68,12 @@ export function Header() {
             <Bell size={22} />
             <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-praxis-cyan rounded-full border-2 border-praxis-bg"></span>
           </button>
-
+ 
           {showNotifications && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-              <div
-                className="absolute right-0 mt-3 w-80 rounded-2xl shadow-2xl z-50 overflow-hidden py-1 glass-panel"
-                style={{ background: 'rgba(10,13,18,0.96)' }}
-              >
+            <div
+              className="absolute right-0 mt-3 w-80 rounded-2xl shadow-2xl z-50 overflow-hidden py-1 glass-panel"
+              style={{ background: 'rgba(10,13,18,0.96)' }}
+            >
                 <div className="p-4 flex items-center justify-between border-b border-white/5">
                   <h4 className="text-white font-semibold text-sm">Notificações</h4>
                   <button className="text-[10px] text-praxis-cyan hover:underline">Limpar tudo</button>
@@ -85,12 +98,11 @@ export function Header() {
                   ))}
                 </div>
               </div>
-            </>
           )}
         </div>
 
         {/* User Menu */}
-        <div className="relative flex items-center gap-3 pl-6 border-l border-white/10">
+        <div className="relative flex items-center gap-3 pl-6 border-l border-white/10" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-3 group text-left"
@@ -111,14 +123,12 @@ export function Header() {
             </div>
             <ChevronDown size={14} className="text-gray-500 group-hover:text-praxis-cyan transition-colors" />
           </button>
-
+ 
           {showUserMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-              <div
-                className="absolute right-0 top-full mt-2 w-52 rounded-2xl shadow-2xl z-50 overflow-hidden py-1 glass-panel"
-                style={{ background: 'rgba(10,13,18,0.97)' }}
-              >
+            <div
+              className="absolute right-0 top-full mt-2 w-52 rounded-2xl shadow-2xl z-50 overflow-hidden py-1 glass-panel"
+              style={{ background: 'rgba(10,13,18,0.97)' }}
+            >
                 <div className="px-4 py-3 mb-1 border-b border-white/5">
                   <p className="text-sm font-semibold text-white truncate">{displayName}</p>
                   <p className="text-xs text-gray-500 truncate mt-0.5">{profile?.email ?? user?.email ?? ''}</p>
@@ -150,7 +160,6 @@ export function Header() {
                   Sair
                 </button>
               </div>
-            </>
           )}
         </div>
       </div>

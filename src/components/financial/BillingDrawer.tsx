@@ -8,6 +8,7 @@ import type { AsaasBillingType, SubscriptionCycle } from '../../lib/database.typ
 
 /* ─── Types ──────────────────────────────────────── */
 interface ClientOption { id: string; name: string; asaas_id: string | null }
+interface SectorOption { id: string; name: string }
 type Tab = 'unica' | 'assinatura'
 
 interface BillingDrawerProps {
@@ -57,6 +58,8 @@ function parseBRL(fmt: string): number {
 export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) {
   const [tab,             setTab]             = useState<Tab>('unica')
   const [clients,         setClients]         = useState<ClientOption[]>([])
+  const [sectors,         setSectors]         = useState<SectorOption[]>([])
+  const [vendasCategoryId, setVendasCategoryId] = useState<string | null>(null)
   const [clientQuery,     setClientQuery]     = useState('')
   const [clientDropdown,  setClientDropdown]  = useState(false)
   const [selectedClient,  setSelectedClient]  = useState<ClientOption | null>(null)
@@ -71,14 +74,32 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
 
   const comboRef = useRef<HTMLDivElement>(null)
 
-  /* Load clients when drawer opens */
+  /* Load data when drawer opens */
   useEffect(() => {
     if (!open) return
+    
+    // Load clients
     supabase
       .from('clients')
       .select('id, name, asaas_id')
       .order('name')
       .then(({ data }) => { if (data) setClients(data as ClientOption[]) })
+
+    // Load sectors for products/services
+    supabase
+      .from('sectors')
+      .select('id, name')
+      .order('name')
+      .then(({ data }) => { if (data) setSectors(data as SectorOption[]) })
+
+    // Load Vendas category automatically
+    supabase
+      .from('finance_categories')
+      .select('id')
+      .eq('name', 'Vendas')
+      .eq('kind', 'income')
+      .single()
+      .then(({ data }: { data: { id: number } | null }) => { if (data) setVendasCategoryId(data.id.toString()) })
   }, [open])
 
   /* Reset on close */
@@ -127,9 +148,10 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
     const value = parseBRL(valueFmt)
 
     if (!selectedClient)      { setFormError('Selecione um cliente.');               return }
+    if (!vendasCategoryId)    { setFormError('Configuração de categoria "Vendas" não encontrada no banco.'); return }
     if (value <= 0)            { setFormError('Informe um valor maior que zero.');    return }
-    if (!description.trim())   { setFormError('Informe uma descrição.');              return }
-    if (tab === 'unica' && !dueDate) { setFormError('Informe a data de vencimento.'); return }
+    if (!description.trim())   { setFormError('Selecione um serviço/setor.');         return }
+    if (!dueDate)             { setFormError('Informe a data de vencimento.');      return }
 
     setLoading(true)
     setFormError(null)
@@ -139,6 +161,7 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
         await createPayment({
           client_id:   selectedClient.id,
           client_name: selectedClient.name,
+          category_id: vendasCategoryId,
           description: description.trim(),
           value,
           billing_type: paymentMethod,
@@ -152,10 +175,12 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
         await createSubscription({
           client_id:   selectedClient.id,
           client_name: selectedClient.name,
+          category_id: vendasCategoryId,
           description: description.trim(),
           value,
           billing_type: paymentMethod,
           cycle,
+          due_date:    dueDate,
           asaas_sync:  asaasSync,
         })
         onSuccess(asaasSync
@@ -287,29 +312,55 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
               </div>
             )}
 
-            {/* Valor */}
+            {/* Produto/Serviço (Sectors) */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Valor</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={valueFmt}
-                onChange={handleValueChange}
-                onFocus={e => e.target.select()}
-                style={FIELD}
-              />
-            </div>
-
-            {/* Descrição */}
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Descrição</label>
-              <input
-                type="text"
-                placeholder="Ex: Gestão de tráfego — Março 2026"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                style={FIELD}
-              />
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Produto/Serviço</label>
+              <div className="relative">
+                <select
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  style={{ ...FIELD, appearance: 'none', paddingRight: 32 }}
+                >
+                  <option value="" disabled style={{ background: '#0d1117' }}>Selecione o serviço...</option>
+                  {sectors.map(s => (
+                    <option key={s.id} value={s.name} style={{ background: '#0d1117' }}>{s.name}</option>
+                  ))}
+                  <option value="Serviço Avulso" style={{ background: '#0d1117' }}>+ Serviço Avulso</option>
+                </select>
+                <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
+              </div>
+            </div>            {/* Valor e Previsão de MRR */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Valor da Venda</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={valueFmt}
+                  onChange={handleValueChange}
+                  onFocus={e => e.target.select()}
+                  style={FIELD}
+                />
+              </div>
+              {tab === 'assinatura' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Valor do MRR (Mensal)</label>
+                  <div 
+                    style={{ ...FIELD, background: 'rgba(0,210,255,0.02)', borderStyle: 'dashed', color: '#00d2ff' }}
+                    className="flex items-center"
+                  >
+                    {(() => {
+                      const v = parseBRL(valueFmt)
+                      let div = 1
+                      if (cycle === 'QUARTERLY') div = 3
+                      if (cycle === 'SEMIANNUALLY') div = 6
+                      if (cycle === 'YEARLY') div = 12
+                      if (cycle === 'WEEKLY') div = 0.25 // aprox
+                      return (v / div).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Meio de Pagamento */}
@@ -334,18 +385,18 @@ export function BillingDrawer({ open, onClose, onSuccess }: BillingDrawerProps) 
               </div>
             </div>
 
-            {/* Condicional: Data de Vencimento (Única) */}
-            {tab === 'unica' && (
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Vencimento</label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  style={{ ...FIELD, colorScheme: 'dark' }}
-                />
-              </div>
-            )}
+            {/* Data de Vencimento / Início */}
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                {tab === 'unica' ? 'Data de Vencimento' : 'Data da Primeira Parcela / Início'}
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={e => setDueDate(e.target.value)}
+                style={{ ...FIELD, colorScheme: 'dark' }}
+              />
+            </div>
 
             {/* Condicional: Ciclo de Recorrência (Assinatura) */}
             {tab === 'assinatura' && (

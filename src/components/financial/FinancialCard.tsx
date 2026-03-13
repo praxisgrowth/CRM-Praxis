@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { DollarSign, X, RefreshCw, Clock, Send, CalendarDays, Loader2, CreditCard, Copy, Trash, Edit2, Save } from 'lucide-react'
 import { BillingOnboardingModal } from '../pipeline/BillingOnboardingModal'
 import { supabase } from '../../lib/supabase'
-import type { FinancialPayment, AsaasPaymentStatus } from '../../lib/database.types'
+import type { FinanceTransaction } from '../../lib/database.types'
 import { useFinancialActions, type FinancialAction } from '../../hooks/useFinancialActions'
 import { deletePayment } from '../../hooks/useBilling'
 import { useAudit } from '../../hooks/useAudit'
@@ -19,18 +19,17 @@ function fmtDate(iso: string | null) {
 }
 
 // ─── Status config ─────────────────────────────────────────────
-const STATUS_CFG: Record<AsaasPaymentStatus, { label: string; color: string; bg: string }> = {
-  PENDING:   { label: 'Pendente',    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
-  CONFIRMED: { label: 'Confirmado',  color: '#10b981', bg: 'rgba(16,185,129,0.12)'  },
-  RECEIVED:  { label: 'Recebido',    color: '#10b981', bg: 'rgba(16,185,129,0.12)'  },
-  OVERDUE:   { label: 'Atrasado',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
-  REFUNDED:  { label: 'Reembolsado', color: '#6366f1', bg: 'rgba(99,102,241,0.12)'  },
-  CANCELLED: { label: 'Cancelado',   color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  PENDENTE:  { label: 'Pendente',    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
+  PAGO:      { label: 'Recebido',    color: '#10b981', bg: 'rgba(16,185,129,0.12)'  },
+  ATRASADO:  { label: 'Atrasado',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
+  CANCELADO: { label: 'Cancelado',   color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
+  PRORROGADA: { label: 'Prorrogada', color: '#6366f1', bg: 'rgba(99,102,241,0.12)'  },
 }
 
 // ─── Payment row ───────────────────────────────────────────────
 interface PaymentRowProps {
-  payment: FinancialPayment
+  payment: any
   client: { phone?: string | null; email?: string | null; name?: string | null } | null
 }
 
@@ -42,24 +41,24 @@ function PaymentRow({ payment, client }: PaymentRowProps) {
   const [showPostpone, setShowPostpone] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [desc, setDesc] = useState(payment.description)
-  const [val, setVal] = useState(payment.value.toString())
-  const [dueDate, setDueDate] = useState(payment.due_date ?? '')
+  const [val, setVal] = useState((payment.amount || 0).toString())
+  const [dueDate, setDueDate] = useState(payment.vencimento ?? '')
   const [loading, setLoading] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const cfg     = STATUS_CFG[payment.status]
-  const hasAsaas = !!payment.asaas_id
+  const cfg     = STATUS_CFG[payment.status] || { label: payment.status, color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' }
+  const hasAsaas = !!payment.reference // Na nova tabela, reference ou asaas_id podem ser usados
 
   const isLoading = (action: string, id: string) => isExecuting(action as FinancialAction, id) || (loading && id === payment.id)
 
   async function runAction(action: FinancialAction, extraDate?: string) {
     if (!payment.asaas_id) return
     const ok = await execute(action, {
-      asaas_id:   payment.asaas_id,
+      asaas_id:   payment.reference || '',
       payment_id: payment.id,
       ...(action === 'postpone' ? {
         due_date:     extraDate,
-        value:        payment.value,
+        value:        payment.amount,
         description:  payment.description,
         client_name:  client?.name ?? undefined,
         client_phone: client?.phone ? client.phone.replace(/\D/g, '') : undefined,
@@ -95,15 +94,15 @@ function PaymentRow({ payment, client }: PaymentRowProps) {
     try {
       const numVal = parseFloat(val.replace(',', '.'))
       const { error } = await (supabase as any)
-        .from('financial_payments')
-        .update({ description: desc, value: numVal, due_date: dueDate })
+        .from('finance_transactions')
+        .update({ description: desc, amount: numVal, vencimento: dueDate })
         .eq('id', payment.id)
       
       if (error) throw error
 
-      await logAction('Update Payment (Local)', 'financial_payment', payment.id, { 
-        old: { description: payment.description, value: payment.value, due_date: payment.due_date },
-        new: { description: desc, value: numVal, due_date: dueDate }
+      await logAction('Update Payment (Local)', 'finance_transactions', payment.id, { 
+        old: { description: payment.description, amount: payment.amount, vencimento: payment.vencimento },
+        new: { description: desc, amount: numVal, vencimento: dueDate }
       })
 
       setToast({ message: 'Cobrança atualizada!', type: 'success' })
@@ -169,11 +168,11 @@ function PaymentRow({ payment, client }: PaymentRowProps) {
                   >
                     {cfg.label}
                   </span>
-                  <span className="text-[10px] text-slate-500">{payment.billing_type}</span>
-                  {payment.due_date && (
+                  <span className="text-[10px] text-slate-500 uppercase">{payment.forma_pagamento}</span>
+                  {payment.vencimento && (
                     <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
                       <CalendarDays size={9} />
-                      {fmtDate(payment.due_date)}
+                      {fmtDate(payment.vencimento)}
                     </span>
                   )}
                 </div>
@@ -197,7 +196,7 @@ function PaymentRow({ payment, client }: PaymentRowProps) {
           ) : (
             <>
               <span className="text-sm font-bold text-white tabular-nums">
-                {fmtCurrency(payment.value)}
+                {fmtCurrency(payment.amount)}
               </span>
               <div className="flex gap-1 mt-1">
                 <button 
@@ -354,11 +353,11 @@ export function FinancialCard({ clientId }: Props) {
     async function load() {
       setLoading(true)
       const [payRes, cliRes] = await Promise.all([
-        (supabase as any).from('financial_payments').select('*').eq('client_id', clientId).order('due_date', { ascending: false }),
+        (supabase as any).from('finance_transactions').select('*').eq('cliente_id', clientId).eq('kind', 'income').order('vencimento', { ascending: false }),
         (supabase as any).from('clients').select('*').eq('id', clientId).single()
       ])
 
-      setPayments((payRes.data ?? []) as FinancialPayment[])
+      setPayments((payRes.data ?? []) as any[])
       setClient(cliRes.data)
       setLoading(false)
     }
